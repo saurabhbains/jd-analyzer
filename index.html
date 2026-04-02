@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JD Analyzer — Saurabh Bains</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #ffffff; --bg2: #f5f5f3; --bg3: #ededea;
+      --text: #1a1a18; --text2: #666660; --text3: #999990;
+      --border: rgba(0,0,0,0.12); --border2: rgba(0,0,0,0.2);
+      --radius: 8px; --radius-lg: 12px;
+      --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --danger: #A32D2D; --danger-bg: #FCEBEB;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1a1a18; --bg2: #242422; --bg3: #2e2e2c;
+        --text: #f0f0ec; --text2: #aaa9a2; --text3: #77776e;
+        --border: rgba(255,255,255,0.1); --border2: rgba(255,255,255,0.18);
+      }
+    }
+    body { font-family: var(--font); background: var(--bg3); color: var(--text); min-height: 100vh; padding: 2rem 1rem; }
+    .app { max-width: 740px; margin: 0 auto; }
+    h1 { font-size: 22px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+    .subtitle { font-size: 13px; color: var(--text2); margin-bottom: 1.5rem; }
+    .card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem; }
+    .section-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text3); margin-bottom: 10px; }
+    textarea, input[type="text"] {
+      width: 100%; padding: 10px 13px; font-size: 14px; font-family: var(--font);
+      border: 0.5px solid var(--border2); border-radius: var(--radius);
+      background: var(--bg); color: var(--text); line-height: 1.6; outline: none;
+      transition: border-color 0.15s;
+    }
+    textarea:focus, input[type="text"]:focus { border-color: var(--text3); }
+    textarea { resize: vertical; min-height: 150px; }
+    button {
+      padding: 8px 20px; font-size: 13px; font-weight: 500; font-family: var(--font);
+      border: 0.5px solid var(--border2); border-radius: var(--radius);
+      background: transparent; color: var(--text); cursor: pointer;
+      transition: background 0.15s, opacity 0.15s;
+    }
+    button:hover:not(:disabled) { background: var(--bg2); }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-primary { background: var(--text); color: var(--bg); border-color: var(--text); }
+    .btn-primary:hover:not(:disabled) { opacity: 0.85; background: var(--text); }
+    .badge {
+      display: inline-block; padding: 3px 10px; border-radius: var(--radius);
+      font-size: 12px; font-weight: 500;
+    }
+    .score-box {
+      border-radius: var(--radius-lg); padding: 14px 20px;
+      text-align: center; min-width: 100px; border: 1.5px solid;
+    }
+    .score-num { font-size: 36px; font-weight: 600; line-height: 1; }
+    .score-label { font-size: 12px; margin-top: 4px; opacity: 0.85; }
+    .swap-pill { padding: 2px 9px; border-radius: var(--radius); font-size: 12px; }
+    .divider { border: none; border-top: 0.5px solid var(--border); margin: 1.25rem 0; }
+    .tag {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 10px; border-radius: var(--radius);
+      font-size: 12px; background: var(--bg2); color: var(--text2);
+      border: 0.5px solid var(--border);
+    }
+    .tag-x { cursor: pointer; opacity: 0.6; font-size: 15px; line-height: 1; }
+    .tag-x:hover { opacity: 1; }
+    .error { color: var(--danger); font-size: 13px; margin-top: 12px; }
+    ol { padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+    ol li { font-size: 14px; line-height: 1.6; color: var(--text); }
+    .flex { display: flex; } .gap-12 { gap: 12px; } .flex-col { flex-direction: column; }
+    .flex-wrap { flex-wrap: wrap; } .items-center { align-items: center; }
+    .mt-4 { margin-top: 4px; } .mt-8 { margin-top: 8px; } .mt-12 { margin-top: 12px; }
+    .mt-16 { margin-top: 16px; } .mt-20 { margin-top: 20px; } .mt-28 { margin-top: 28px; }
+    .mb-6 { margin-bottom: 6px; } .mb-10 { margin-bottom: 10px; } .mb-16 { margin-bottom: 16px; }
+    .f-13 { font-size: 13px; } .f-14 { font-size: 14px; } .lh-16 { line-height: 1.6; }
+    .text2 { color: var(--text2); } .text3 { color: var(--text3); }
+    .copy-btn { padding: 4px 10px; font-size: 12px; white-space: nowrap; flex-shrink: 0; }
+    .version-add-panel {
+      background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--radius-lg);
+      padding: 14px 16px; display: flex; flex-direction: column; gap: 10px;
+    }
+    @media (max-width: 600px) {
+      .score-row { flex-direction: column; }
+      h1 { font-size: 18px; }
+    }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useCallback } = React;
+
+const MASTER_BANK = `
+=== SAURABH BAINS — MASTER RESUME BANK ===
+
+Five active versions:
+- AMEX_DIRECTOR: leadership/director-level framing, strategy emphasis, reports to CPO/Director
+- SPM_INSURTECH: fintech senior PM, platform architecture, API systems, user research
+- VISA: execution/delivery, PRDs, backlog, sprints, agile, ATS-optimised for process-heavy orgs
+- NORTHZONE: VC/entrepreneurial, richest CSF bullets, team sizes, investment/fund language
+- ANTHROPIC: rare/specific — partnerships + tech + EdTech non-profit combination
+
+--- LITTA (2025, London) ---
+[ALL] Redesigned growth strategy and product roadmap, reallocating ~20% budget toward high-conversion channels
+[NORTHZONE] Redesigned firm-wide growth strategy; modelled scenarios and defined product roadmap, driving ~20% budget reallocation toward high-conversion channels; reported to Board of Directors
+[ALL] Developed a dynamic pricing engine (from cost-plus to willingness-to-pay), increasing retail margins by 12%
+
+--- VFX FINANCIAL (2025, London) ---
+[ALL] Partnered with the CEO to transition to a product-first operating model; restructured engineering into three focused domains, accelerating delivery timelines by 20%, unlocking faster feature rollout
+[AMEX_DIRECTOR/SPM_INSURTECH] Led end-to-end solution redesign of a payments compliance and risk platform, defining modular architecture for onboarding and transaction monitoring; strengthened auditability, translating to ~300-500k annual savings
+[VISA] Led end-to-end redesign of payments compliance and risk platform, introducing modular APIs for onboarding and transaction monitoring; strengthening trust and improving auditability, ~300-500k annual savings
+[NORTHZONE] Led end-to-end redesign of the compliance platform, introducing modular APIs, cutting onboarding time and improving audit traceability, translating to ~300-500k annualised cost savings
+
+--- PAYPAY (2022-2024) Company descriptions ---
+[AMEX_DIRECTOR] SoftBank payments arm, 70M+ users, $100B GMV. Co-led $80M merchant business across product, engineering, and design, translating business problems into structured roadmaps; led team of 15, reported to Director and CPO
+[SPM_INSURTECH] SoftBank payments arm, 70M+ users, $100B GMV. Co-led $80M merchant business, owning strategy and roadmap for trusted financial and marketplace experiences; reported to Director and CPO
+[VISA] SoftBank payments arm, 70M+ users, $100B GMV. Co-led $80M merchant business; owned end-to-end delivery across discovery, checkout and transaction flows; defined PRDs, managed backlog and sprints, agile environment; reported to Director and CPO
+[NORTHZONE] Japan largest payments app, 70M+ users, 10M+ stores, 8B+ payments/yr. One of two leaders of $80M merchant business; led cross-functional team of 15
+
+--- PAYPAY Bullet 1 Marketplace ---
+[AMEX_DIRECTOR] Defined and launched a multi-product payments-enabled marketplace, integrating offline merchant inventory into a unified ecosystem across 50k stores; designed end-to-end solutions spanning payments, discovery and merchant systems; generated $3M GMV in 3 months; product awarded two patents
+[SPM_INSURTECH] Launched a digital commerce and two-sided payments-enabled marketplace, integrating offline merchant inventory into a scalable platform used by 50k stores, improving transaction confidence and reducing friction; generated $3M GMV in 3 months; product awarded two patents
+[VISA] Launched a two-sided payments-enabled marketplace; partnered with engineering, CX and merchant teams to iterate on discovery and checkout flows through data-driven experiments and user feedback, optimising transaction conversion, scaling to 50k stores, generating $3M GMV in 3 months; product awarded two patents
+[NORTHZONE] Spearheaded launch of retail discovery platform, transforming offline inventory into digital records across 50k stores, increasing transaction visibility and driving $3M GMV in 3 months; product awarded two patents
+
+--- PAYPAY Bullet 2 Store Discovery ---
+[AMEX_DIRECTOR] Led redesign of a declining store discovery product; defined new architecture and realigned senior leadership on new strategy; improved trust and relevance in merchant recommendations, reversing churn and scaling MAU to 8M; awarded two patents
+[SPM_INSURTECH] Led rebuild of a declining store discovery product by redesigning core user and data flows; realigned senior leadership on new strategy; improved relevance and user trust in merchant recommendations, reversing churn and scaling MAU to 8M; awarded two patents
+[VISA] Rebuilt a declining store discovery product by analysing user behaviour and transaction data to identify drop-offs; realigned senior leadership; partnered with engineering and data teams, reversing churn, scaling MAU to 8M; awarded two patents
+[NORTHZONE] Led rebuild of a declining legacy store discovery product; created new product and data flow; realigned senior leadership; reversed churn and increased MAU to 8M; awarded patents for discovery workflow
+
+--- PAYPAY Bullet 3 Shopping Assist ---
+[AMEX_DIRECTOR] Led cross-platform design of Shopping Assist across SoftBank (PayPay, Yahoo, LINE); managed complex stakeholder trade-offs to improve interoperability, increasing user engagement by 30%
+[SPM_INSURTECH] Led product development of Shopping Assist across SoftBank (PayPay, Yahoo, Line), standardizing merchant interactions, improving interoperability and increasing cross-platform user engagement by 30%
+[VISA] Led delivery of cross-platform Shopping Assist by aligning requirements and coordinating execution across multiple product and engineering teams; standardized merchant interactions, increasing user engagement by 30%
+[NORTHZONE] Designed and led expansion of Shopping Assist across SoftBank, standardizing merchant interactions and increasing cross-platform user engagement by 30%
+
+--- PAYPAY Bullet 4 Digital Wallet ---
+[AMEX_DIRECTOR] Launched government-backed prepaid digital wallet navigating complex partner and regulatory constraints and cross-functional dependencies; enabled cashless payments for 60k SMBs and $1M+ transactions at launch
+[SPM_INSURTECH] Launched a government-backed prepaid digital wallet in a regulated environment, enabling secure cashless payments for 60k SMBs; led cross-functional delivery across regulators and partners, processing $1M+ transactions at launch
+[VISA] Delivered a government-backed prepaid digital wallet in a regulated payments environment; translated partner requirements into product specifications; managed dependencies across regulators, banks, and internal teams; launched secure real-time payments for 60k SMBs ($1M+ transactions at launch)
+[NORTHZONE] Launched a government-backed prepaid digital wallet, driving adoption of cashless payments for 60k small businesses, coordinating with public institutions for operational rollout, processing $1M+ in transactions on launch
+
+--- CSF (2018-2022) ---
+[ALL] Incubated Rocket Learning, an AI start-up for public schools; scaled across five states; recognised as 1 of 15 global winners of Google AI for Global Goals award
+[ALL] Led product and rollout of a home learning app to 150k+ households; grew MAU by 40% through onboarding redesign; reached #2 on the App Store
+[AMEX_DIRECTOR/NORTHZONE] Led design of CSF four-year $8M strategic roadmap targeting impact across 100M children; drove org-wide OKR implementation
+[ANTHROPIC] Raised $4M from India largest corporate funder; built targeted funnel, pitched, and built stakeholder relationships; established CSF fundraising coaching for 20 non-profits
+[ANTHROPIC] Led widespread adoption of TicTacLearn across 500 low-resourced schools; expanded to 20 states and 50M total content views
+[ANTHROPIC] Developed enterprise product for Chimple, a gamified app (Global Learning XPrize finalist); expanded student reach by 40% and developed 2 corporate partnerships
+[NORTHZONE] Designed and deployed a covid-response playbook for portfolio startups, enabling pivot to remote-first delivery; expanding collective reach to 5M students
+[NORTHZONE] Raised and structured a $3M flagship investment fund; led sourcing and evaluation of 10 startups; formalized capital allocation strategy with board
+
+--- PAYTM (2015-2017) ---
+[AMEX_DIRECTOR/SPM_INSURTECH] Led product for launch of one of India largest licensed digital banks, building secure compliant payment flows and identity-linked transactions, integrating with banks and regulators to ensure reliability at scale (60M users)
+[VISA] Defined and owned product delivery for one of India largest licensed digital banks; built compliant real-time payments (UPI); collaborated with banks and regulators to ensure reliability at scale (60M users)
+[NORTHZONE] Led a product team of four; worked with regulators and partner banks to build biometric-based payments and compliant transaction flows, scaling to 60M users
+[NORTHZONE] Designed payment lifecycle flows including settlement, reconciliation and error handling across user journeys
+[AMEX_DIRECTOR/SPM_INSURTECH] Founding PM for online-to-offline marketplace (events and movies); built two-sided consumer and merchant platforms, secured three national partnerships, scaled to 2M+ transactions; business later exited for $250M
+[NORTHZONE] Founding PM for Paytm O2O business; managed team of six; led consumer and merchant product flows and partnerships; scaled early adoption to 2M+ transactions
+
+--- SKILLS LINE VARIANTS ---
+[AMEX_DIRECTOR] AI Applied Tools (Claude Code, Vercel), Product and strategy (solutions design, platform strategy, roadmap ownership), Jira, Miro, Figma, Mixpanel, SQL, experimentation, payments, marketplaces, digital wallets, API-based systems, modular platforms
+[SPM_INSURTECH] AI Applied Tools (Claude Code, Vercel), Product (backlog prioritisation, agile, Mixpanel, Jira, Miro, Figma), Analytics (SQL), Payments (digital wallet ecosystem, prepaid systems, payment flows)
+[VISA] Backlog prioritisation, Agile/Scrum, Miro, Jira, Figma, PPT, Excel, SQL, payments (digital wallet ecosystem, payment flows, compliance led systems), Claude Code, Vercel
+[NORTHZONE/ANTHROPIC] Solutions design, platform strategy, roadmap ownership, user research, rapid experimentation, Jira, Miro, Figma, SQL, experimentation, API-based systems, modular platforms, Claude Code, Vercel
+
+--- PROJECTS ---
+[ALL] Pathwise (Dec 2025): AI-powered simulation engine for executive coaching; 2nd Prize UC Berkeley AI Hackathon
+[ALL] FareShare (2013): early ride-sharing app in India; scaled to 3k users; finalist (top 30/800) in Google and MIT accelerator
+[MOST] BerkeleyRides (2025): AI ride-sharing app at UC Berkeley; 100+ users, ~50% signup conversion
+[SPM_INSURTECH] Aisle (Mar 2026): wedding planning AI assistant that automates venue discovery and outreach
+[MOST] Mentorship: Instructor to 50+ PM students on Upgrad flagship PM course (2018-2019)
+`;
+
+const BASE_SYSTEM = `You are an expert PM recruiter and resume coach helping Saurabh Bains optimise his resume for specific job applications.
+
+You have access to Saurabh's MASTER RESUME BANK with all bullet variants across all resume versions:
+
+${MASTER_BANK}
+
+FIVE ACTIVE RESUME VERSIONS:
+1. AMEX_DIRECTOR: leadership/director-level framing, strategy emphasis. Best for: director+ roles, large orgs, strategy-heavy JDs
+2. SPM_INSURTECH: fintech senior PM, platform architecture, API systems. Best for: fintech senior PM roles, insurtech, platform companies
+3. VISA: execution/delivery focused. PRDs, backlog, sprints, agile. ATS-optimised. Best for: Visa, Mastercard, Expedia, process-heavy orgs
+4. NORTHZONE: VC/entrepreneurial framing. Richest CSF bullets, team sizes, investment language. Best for: VC firms, strategy roles, early-stage
+5. ANTHROPIC: rare — partnerships + tech + EdTech non-profit. Best for: partnerships roles requiring social impact + tech background
+
+If additional custom versions are provided, treat them with equal weight.
+
+When given a job description, respond ONLY with a JSON object in this exact structure:
+{
+  "fitScore": <integer 0-100>,
+  "fitLabel": <"Strong Match" | "Good Match" | "Partial Match" | "Weak Match">,
+  "fitRationale": "<1-2 sentence summary>",
+  "recommendedBase": "<AMEX_DIRECTOR | SPM_INSURTECH | VISA | NORTHZONE | ANTHROPIC | or custom version name>",
+  "baseRationale": "<one sentence explaining why this base version fits best>",
+  "bulletSwaps": [
+    { "role": "<company e.g. PAYPAY>", "swapFrom": "<current version>", "swapTo": "<better version>", "reason": "<why>" }
+  ],
+  "missingKeywords": [
+    { "keyword": "<exact keyword from JD>", "suggestion": "<where to add it>" }
+  ],
+  "skillsLineVariant": "<which skills variant to use or a new combined version with JD keywords>",
+  "quickActions": ["<concise action item>"],
+  "applyRecommendation": <"Apply now" | "Apply with tweaks" | "Low priority">,
+  "applyReason": "<one sentence>"
+}
+
+Rules: bulletSwaps max 4. missingKeywords max 6. quickActions 3-5 items. Be direct. Return ONLY valid JSON, no markdown fences, no preamble.`;
+
+const FIT_COLORS = {
+  "Strong Match": { bg: "#EAF3DE", text: "#3B6D11", border: "#639922" },
+  "Good Match":   { bg: "#E6F1FB", text: "#185FA5", border: "#378ADD" },
+  "Partial Match":{ bg: "#FAEEDA", text: "#854F0B", border: "#BA7517" },
+  "Weak Match":   { bg: "#FCEBEB", text: "#A32D2D", border: "#E24B4A" },
+};
+const APPLY_COLORS = {
+  "Apply now":        { bg: "#EAF3DE", text: "#3B6D11" },
+  "Apply with tweaks":{ bg: "#E6F1FB", text: "#185FA5" },
+  "Low priority":     { bg: "#FCEBEB", text: "#A32D2D" },
+};
+const VERSION_COLORS = {
+  AMEX_DIRECTOR: { bg: "#E6F1FB", text: "#185FA5" },
+  SPM_INSURTECH:  { bg: "#FAEEDA", text: "#854F0B" },
+  VISA:           { bg: "#FCEBEB", text: "#A32D2D" },
+  NORTHZONE:      { bg: "#EAF3DE", text: "#3B6D11" },
+  ANTHROPIC:      { bg: "#EEEDFE", text: "#3C3489" },
+};
+function vColor(name) { return VERSION_COLORS[name] || { bg: "#F1EFE8", text: "#5F5E5A" }; }
+
+function Section({ title, children }) {
+  return (
+    <div className="mt-20">
+      <div className="section-label">{title}</div>
+      {children}
+    </div>
+  );
+}
+
+function App() {
+  const [jd, setJd] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+  const [copied, setCopied] = useState(null);
+  const [showAdd, setShowAdd] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newText, setNewText] = useState("");
+  const [customVersions, setCustomVersions] = useState([]);
+  const [apiKey, setApiKey] = useState(localStorage.getItem("sb_api_key") || "");
+  const [showKeyInput, setShowKeyInput] = useState(false);
+
+  function saveKey() {
+    localStorage.setItem("sb_api_key", apiKey);
+    setShowKeyInput(false);
+  }
+
+  function addVersion() {
+    if (!newName.trim() || !newText.trim()) return;
+    setCustomVersions(prev => [...prev, { name: newName.trim().toUpperCase().replace(/\s+/g, "_"), text: newText.trim() }]);
+    setNewName(""); setNewText(""); setShowAdd(false);
+  }
+
+  function removeVersion(i) { setCustomVersions(prev => prev.filter((_, j) => j !== i)); }
+
+  function copyText(text, id) {
+    navigator.clipboard.writeText(text).catch(() => {});
+    setCopied(id);
+    setTimeout(() => setCopied(null), 1500);
+  }
+
+  async function analyse() {
+    if (!jd.trim()) return;
+    if (!apiKey.trim()) { setError("Add your Anthropic API key first (top right)."); return; }
+    setLoading(true); setResult(null); setError(null);
+    const systemPrompt = BASE_SYSTEM + (customVersions.length > 0
+      ? "\n\nADDITIONAL CUSTOM VERSIONS:\n" + customVersions.map(v => v.name + ":\n" + v.text).join("\n\n")
+      : "");
+    try {
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
+        body: JSON.stringify({
+          model: "claude-haiku-4-5-20251001",
+          max_tokens: 1500,
+          system: systemPrompt,
+          messages: [{ role: "user", content: "Analyse this job description:\n\n" + jd }],
+        }),
+      });
+      const data = await res.json();
+      if (data.error) { setError("API error: " + data.error.message); return; }
+      const raw = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("");
+      if (!raw) { setError("Empty response. Please try again."); return; }
+      const match = raw.replace(/```json|```/g, "").match(/\{[\s\S]*\}/);
+      if (!match) { setError("Parse error. Please try again."); return; }
+      setResult(JSON.parse(match[0]));
+    } catch(e) { setError("Error: " + e.message); }
+    finally { setLoading(false); }
+  }
+
+  const fc = result ? (FIT_COLORS[result.fitLabel] || FIT_COLORS["Partial Match"]) : null;
+  const ac = result ? (APPLY_COLORS[result.applyRecommendation] || APPLY_COLORS["Apply with tweaks"]) : null;
+  const vc = result ? vColor(result.recommendedBase) : null;
+
+  return (
+    <div className="app">
+      <div className="flex items-center" style={{justifyContent:"space-between", marginBottom: 4}}>
+        <h1>JD Analyzer</h1>
+        <button style={{fontSize:12, padding:"5px 12px"}} onClick={() => setShowKeyInput(v => !v)}>
+          {apiKey ? "✓ API key set" : "Set API key"}
+        </button>
+      </div>
+      <div className="subtitle">Match any job description against your resume versions instantly.</div>
+
+      {showKeyInput && (
+        <div className="card mb-16" style={{marginBottom:16}}>
+          <div className="section-label">Anthropic API key (stored locally)</div>
+          <div className="flex gap-12 mt-8">
+            <input type="text" value={apiKey} onChange={e => setApiKey(e.target.value)}
+              placeholder="sk-ant-..." style={{flex:1}} />
+            <button className="btn-primary" onClick={saveKey}>Save</button>
+          </div>
+        </div>
+      )}
+
+      <div className="flex items-center flex-wrap gap-12 mb-10" style={{justifyContent:"space-between"}}>
+        <div className="flex gap-12 flex-wrap items-center">
+          {customVersions.map((v, i) => (
+            <span key={i} className="tag">
+              {v.name}
+              <span className="tag-x" onClick={() => removeVersion(i)}>×</span>
+            </span>
+          ))}
+        </div>
+        <button style={{fontSize:12, padding:"5px 12px"}} onClick={() => setShowAdd(v => !v)}>
+          {showAdd ? "Cancel" : "+ Add resume version"}
+        </button>
+      </div>
+
+      {showAdd && (
+        <div className="version-add-panel mb-16" style={{marginBottom:16}}>
+          <input type="text" value={newName} onChange={e => setNewName(e.target.value)}
+            placeholder="Version name (e.g. GOOGLE)" />
+          <textarea value={newText} onChange={e => setNewText(e.target.value)}
+            placeholder="Paste the full resume text for this version..." style={{minHeight:120}} />
+          <button className="btn-primary" style={{alignSelf:"flex-start"}}
+            disabled={!newName.trim() || !newText.trim()} onClick={addVersion}>
+            Save version
+          </button>
+        </div>
+      )}
+
+      <textarea value={jd} onChange={e => setJd(e.target.value)}
+        placeholder="Paste the full job description here..." style={{minHeight:160}} />
+
+      <div className="mt-12">
+        <button className="btn-primary" disabled={loading || !jd.trim()} onClick={analyse}>
+          {loading ? "Analysing..." : "Analyse JD →"}
+        </button>
+      </div>
+
+      {error && <div className="error mt-12">{error}</div>}
+
+      {result && (
+        <div className="mt-28">
+          <div className="flex gap-12 flex-wrap score-row">
+            <div className="score-box" style={{background: fc.bg, borderColor: fc.border, color: fc.text}}>
+              <div className="score-num">{result.fitScore}</div>
+              <div className="score-label">{result.fitLabel}</div>
+            </div>
+            <div className="card" style={{flex:1, minWidth:200, display:"flex", flexDirection:"column", gap:8}}>
+              <p className="f-14 lh-16">{result.fitRationale}</p>
+              <span className="badge" style={{background: ac.bg, color: ac.text, alignSelf:"flex-start"}}>
+                {result.applyRecommendation}
+              </span>
+            </div>
+          </div>
+
+          <Section title="Recommended base version">
+            <div className="card" style={{background: vc.bg, border: `1.5px solid ${vc.text}30`}}>
+              <span className="badge mb-6" style={{display:"inline-block", background:"white", color: vc.text, border:`1px solid ${vc.text}40`}}>
+                {result.recommendedBase}
+              </span>
+              <p className="f-13 lh-16" style={{color: vc.text, marginTop:6}}>{result.baseRationale}</p>
+            </div>
+          </Section>
+
+          <Section title="Quick actions">
+            <ol>{(result.quickActions||[]).map((a,i) => <li key={i}>{a}</li>)}</ol>
+          </Section>
+
+          {result.bulletSwaps?.length > 0 && (
+            <Section title="Bullet swaps — pull from other versions">
+              <div className="flex-col flex gap-12">
+                {result.bulletSwaps.map((s,i) => (
+                  <div key={i} className="card">
+                    <div className="flex gap-12 items-center flex-wrap mb-6">
+                      <span style={{fontSize:11, fontWeight:600, textTransform:"uppercase", letterSpacing:"0.04em", color:"var(--text3)"}}>{s.role}</span>
+                      <span className="swap-pill" style={{background:"#FCEBEB", color:"#A32D2D"}}>from {s.swapFrom}</span>
+                      <span className="text3">→</span>
+                      <span className="swap-pill" style={{background:"#EAF3DE", color:"#3B6D11"}}>use {s.swapTo}</span>
+                    </div>
+                    <p className="f-13 lh-16 text2">{s.reason}</p>
+                  </div>
+                ))}
+              </div>
+            </Section>
+          )}
+
+          {result.missingKeywords?.length > 0 && (
+            <Section title="Missing keywords — not in any version">
+              <div className="flex-col flex gap-12">
+                {result.missingKeywords.map((k,i) => (
+                  <div key={i} className="card">
+                    <span className="badge mb-6" style={{display:"inline-block", background:"#EEEDFE", color:"#3C3489"}}>{k.keyword}</span>
+                    <p className="f-13 lh-16 text2" style={{marginTop:4}}>{k.suggestion}</p>
+                  </div>
+                ))}
+              </div>
+            </Section>
+          )}
+
+          {result.skillsLineVariant && (
+            <Section title="Skills line to use">
+              <div className="card flex gap-12" style={{alignItems:"flex-start"}}>
+                <p className="f-13 lh-16" style={{flex:1}}>{result.skillsLineVariant}</p>
+                <button className="copy-btn" onClick={() => copyText(result.skillsLineVariant, "skills")}>
+                  {copied === "skills" ? "Copied" : "Copy"}
+                </button>
+              </div>
+            </Section>
+          )}
+
+          <hr className="divider" style={{marginTop:24}} />
+          <p className="f-13 text2 lh-16">{result.applyReason}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
