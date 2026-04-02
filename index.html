@@ -1,363 +1,332 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>JD Analyzer — Saurabh Bains</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --bg: #ffffff; --bg2: #f5f5f3; --bg3: #ededea;
-      --text: #1a1a18; --text2: #666660; --text3: #999990;
-      --border: rgba(0,0,0,0.12); --border2: rgba(0,0,0,0.22);
-      --success-bg: #EAF3DE; --success-text: #27500A; --success-border: #639922;
-      --info-bg: #E6F1FB; --info-text: #0C447C; --info-border: #378ADD;
-      --warn-bg: #FAEEDA; --warn-text: #633806; --warn-border: #BA7517;
-      --danger-bg: #FCEBEB; --danger-text: #791F1F; --danger-border: #E24B4A;
-      --purple-bg: #EEEDFE; --purple-text: #3C3489;
-      --radius: 8px; --radius-lg: 12px;
-      --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    }
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg: #1c1c1a; --bg2: #252523; --bg3: #2e2e2b;
-        --text: #f0f0ec; --text2: #aaa9a0; --text3: #77776e;
-        --border: rgba(255,255,255,0.1); --border2: rgba(255,255,255,0.18);
-      }
-    }
-    body { font-family: var(--font); background: var(--bg3); color: var(--text); min-height: 100vh; padding: 2rem 1rem; }
-    .app { max-width: 740px; margin: 0 auto; }
-    h1 { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
-    .subtitle { font-size: 13px; color: var(--text2); margin-bottom: 1.5rem; }
-    .tabs { display: flex; gap: 2px; border-bottom: 0.5px solid var(--border2); margin-bottom: 1.5rem; }
-    .tab { padding: 8px 16px; font-size: 13px; font-weight: 400; color: var(--text2); cursor: pointer; background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -1px; font-family: var(--font); }
-    .tab.active { color: var(--text); font-weight: 500; border-bottom-color: var(--text); }
-    .card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1rem 1.25rem; }
-    .card-winner { background: var(--bg); border: 2px solid var(--success-border); border-radius: var(--radius-lg); padding: 1rem 1.25rem; }
-    textarea, input[type="text"] { width: 100%; padding: 10px 13px; font-size: 14px; font-family: var(--font); border: 0.5px solid var(--border2); border-radius: var(--radius); background: var(--bg); color: var(--text); line-height: 1.6; outline: none; }
-    textarea { resize: vertical; }
-    button { padding: 8px 18px; font-size: 13px; font-weight: 500; font-family: var(--font); border: 0.5px solid var(--border2); border-radius: var(--radius); background: transparent; color: var(--text); cursor: pointer; }
-    button:hover:not(:disabled) { background: var(--bg2); }
-    button:disabled { opacity: 0.4; cursor: not-allowed; }
-    .btn-primary { background: var(--text); color: var(--bg); }
-    .btn-primary:hover:not(:disabled) { opacity: 0.85; }
-    .badge { display: inline-block; padding: 3px 9px; border-radius: var(--radius); font-size: 12px; font-weight: 500; }
-    .label { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text3); margin-bottom: 10px; }
-    .score-ring { width: 52px; height: 52px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 2px solid; }
-    .empty { text-align: center; padding: 2.5rem 1rem; color: var(--text2); font-size: 14px; line-height: 1.7; }
-    .resume-row { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border: 0.5px solid var(--border); border-radius: var(--radius); background: var(--bg); margin-bottom: 8px; }
-    .kw-pill { display: inline-block; background: var(--purple-bg); color: var(--purple-text); padding: 2px 9px; border-radius: var(--radius); font-size: 12px; font-weight: 500; margin-bottom: 4px; }
-    .from-pill { background: var(--danger-bg); color: var(--danger-text); padding: 2px 8px; border-radius: var(--radius); font-size: 12px; }
-    .to-arrow { font-size: 12px; color: var(--text3); }
-    .api-panel { background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1rem 1.25rem; margin-bottom: 1.5rem; }
-    .error { color: var(--danger-text); font-size: 13px; margin-top: 12px; }
-    hr { border: none; border-top: 0.5px solid var(--border); margin: 1.5rem 0; }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>JD Analyzer</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#ededea;color:#1a1a18;min-height:100vh;padding:2rem 1rem}
+.app{max-width:720px;margin:0 auto}
+h1{font-size:20px;font-weight:600;margin-bottom:4px}
+.sub{font-size:13px;color:#666;margin-bottom:1.5rem}
+.tabs{display:flex;border-bottom:1px solid #d0d0cc;margin-bottom:1.5rem}
+.tab{padding:8px 18px;font-size:13px;font-weight:400;color:#888;cursor:pointer;background:none;border:none;border-bottom:2px solid transparent;margin-bottom:-1px;font-family:inherit}
+.tab.on{color:#1a1a18;font-weight:500;border-bottom-color:#1a1a18}
+.card{background:#fff;border:1px solid #e0e0dc;border-radius:12px;padding:1rem 1.25rem;margin-bottom:10px}
+.card.winner{border:2px solid #639922}
+.label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#999;margin-bottom:10px}
+textarea,input[type=text]{width:100%;padding:10px 13px;font-size:14px;font-family:inherit;border:1px solid #ccc;border-radius:8px;background:#fff;color:#1a1a18;line-height:1.6;outline:none}
+textarea{resize:vertical}
+button{padding:8px 18px;font-size:13px;font-weight:500;font-family:inherit;border:1px solid #ccc;border-radius:8px;background:transparent;color:#1a1a18;cursor:pointer}
+button:hover:not(:disabled){background:#f0f0ec}
+button:disabled{opacity:.4;cursor:not-allowed}
+.btn-p{background:#1a1a18;color:#fff;border-color:#1a1a18}
+.btn-p:hover:not(:disabled){opacity:.85;background:#1a1a18}
+.btn-sm{padding:4px 10px;font-size:12px}
+.badge{display:inline-block;padding:3px 9px;border-radius:6px;font-size:12px;font-weight:500}
+.ring{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:2px solid;font-size:15px;font-weight:500}
+.row{display:flex;align-items:center;gap:12px;padding:10px 14px;background:#fff;border:1px solid #e0e0dc;border-radius:8px;margin-bottom:8px}
+.kw{display:inline-block;background:#EEEDFE;color:#3C3489;padding:2px 9px;border-radius:6px;font-size:12px;font-weight:500;margin-bottom:4px}
+.from-tag{background:#FCEBEB;color:#791F1F;padding:2px 8px;border-radius:6px;font-size:12px}
+.empty{text-align:center;padding:2.5rem 1rem;color:#888;font-size:14px;line-height:1.7}
+.err{color:#A32D2D;font-size:13px;margin-top:10px}
+.gap{display:flex;flex-direction:column;gap:10px}
+.mt{margin-top:20px}
+.top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px}
+hr{border:none;border-top:1px solid #e0e0dc;margin:1.25rem 0}
+</style>
 </head>
 <body>
-<div id="root"></div>
-<script type="text/babel">
-const { useState, useEffect } = React;
+<div class="app">
+  <div class="top">
+    <div><h1>JD Analyzer</h1><div class="sub">Store resume versions. Analyze any JD against all of them.</div></div>
+    <button id="keyBtn" style="font-size:12px;padding:5px 12px;margin-top:4px">Set API key</button>
+  </div>
+  <div id="keyPanel" style="display:none;background:#f5f5f3;border:1px solid #ddd;border-radius:10px;padding:1rem;margin-bottom:1rem">
+    <div class="label">Anthropic API key (saved in browser)</div>
+    <div style="display:flex;gap:10px;margin-top:8px">
+      <input type="text" id="keyInput" placeholder="sk-ant-..." style="flex:1" />
+      <button class="btn-p" onclick="saveKey()">Save</button>
+    </div>
+  </div>
+  <div class="tabs">
+    <button class="tab on" onclick="switchTab('vault',this)">Resume vault <span id="vaultCount"></span></button>
+    <button class="tab" onclick="switchTab('analyze',this)">Analyze JD</button>
+  </div>
+  <div id="vault">
+    <div id="resumeList"></div>
+    <div style="margin-top:14px">
+      <button onclick="toggleAdd()">+ Add resume version</button>
+    </div>
+    <div id="addPanel" style="display:none;margin-top:12px" class="card">
+      <div class="label">Version name</div>
+      <input type="text" id="newName" placeholder="e.g. GOOGLE, MONZO, STRIPE..." style="margin-bottom:10px" />
+      <div class="label" style="margin-top:6px">Resume text</div>
+      <textarea id="newText" placeholder="Paste the full resume text here..." style="min-height:140px;margin-bottom:10px"></textarea>
+      <button class="btn-p" onclick="addResume()">Save version</button>
+      <button style="margin-left:8px" onclick="toggleAdd()">Cancel</button>
+    </div>
+  </div>
+  <div id="analyze" style="display:none">
+    <div class="label">Job description</div>
+    <textarea id="jdInput" placeholder="Paste the full job description here..." style="min-height:160px;margin-bottom:12px"></textarea>
+    <div id="noKey" style="display:none;font-size:13px;color:#888;margin-bottom:8px">Set your Anthropic API key first (top right).</div>
+    <div id="noResumes" style="display:none;font-size:13px;color:#888;margin-bottom:8px">Add at least one resume in the vault first.</div>
+    <button class="btn-p" id="analyzeBtn" onclick="analyse()">Analyze →</button>
+    <div id="analyzeError" class="err"></div>
+    <div id="results" style="margin-top:28px"></div>
+  </div>
+</div>
 
-const STORAGE_KEY = 'sb_resumes_v2';
+<script>
+const STORAGE_KEY = 'sb_resumes_v3';
+let resumes = [];
 
-const SYSTEM_PROMPT = `You are a resume coach helping Saurabh Bains match his resume versions to job descriptions.
-
-You will receive multiple labelled resume versions and a job description.
-
-Your tasks:
-1. Score EACH resume version against the JD (0-100) based on keyword overlap, role framing, and relevance
-2. Identify the best match (winner)
-3. Scan ALL OTHER resumes for specific bullets that would improve the winner's match
-4. Identify keywords missing from ALL versions
-
-Respond ONLY with this JSON:
-{
-  "rankings": [
-    { "name": "<resume name>", "score": <0-100>, "reason": "<one sentence why>" }
-  ],
-  "winner": "<name of best resume>",
-  "winnerRationale": "<2 sentences on why it wins and what to keep>",
-  "crossResumePulls": [
-    { "fromResume": "<name>", "fullBullet": "<complete bullet text to add/swap>", "whyItHelps": "<one sentence — be specific about which JD keyword this addresses>" }
-  ],
-  "missingKeywords": [
-    { "keyword": "<exact keyword from JD>", "suggestion": "<where to add it in winner resume>" }
-  ],
-  "skillsLine": "<optimised skills line incorporating key JD terms>",
-  "applyRecommendation": "<Apply now | Apply with tweaks | Low priority>",
-  "applyReason": "<one sentence>"
+function loadResumes() {
+  try { resumes = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch { resumes = []; }
+  renderVault();
 }
 
-Rules:
-- rankings: include ALL submitted resumes, sorted best-first
-- crossResumePulls: max 5, only genuinely useful pulls — not generic bullets that could go anywhere
-- missingKeywords: max 6, only terms truly absent from all versions
-- Return ONLY valid JSON. No markdown, no preamble.`;
+function persist() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(resumes)); } catch {}
+  renderVault();
+}
+
+function renderVault() {
+  const list = document.getElementById('resumeList');
+  const count = document.getElementById('vaultCount');
+  count.textContent = resumes.length > 0 ? '(' + resumes.length + ')' : '';
+  if (resumes.length === 0) {
+    list.innerHTML = '<div class="empty">No resumes saved yet.<br>Add your first version below.</div>';
+    return;
+  }
+  list.innerHTML = resumes.map(r => `
+    <div class="row">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14px;font-weight:500;margin-bottom:2px">${r.name}</div>
+        <div style="font-size:12px;color:#999">${r.text.split(' ').length} words · added ${r.added}</div>
+      </div>
+      <button onclick="deleteResume(${r.id})" style="border:none;background:none;color:#aaa;font-size:20px;padding:0 4px;cursor:pointer;line-height:1">×</button>
+    </div>`).join('');
+}
+
+function toggleAdd() {
+  const p = document.getElementById('addPanel');
+  p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}
+
+function addResume() {
+  const name = document.getElementById('newName').value.trim();
+  const text = document.getElementById('newText').value.trim();
+  if (!name || !text) return;
+  resumes.push({ id: Date.now(), name, text, added: new Date().toLocaleDateString('en-GB', { day:'numeric', month:'short' }) });
+  persist();
+  document.getElementById('newName').value = '';
+  document.getElementById('newText').value = '';
+  document.getElementById('addPanel').style.display = 'none';
+}
+
+function deleteResume(id) {
+  resumes = resumes.filter(r => r.id !== id);
+  persist();
+}
+
+function switchTab(tab, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
+  el.classList.add('on');
+  document.getElementById('vault').style.display = tab === 'vault' ? 'block' : 'none';
+  document.getElementById('analyze').style.display = tab === 'analyze' ? 'block' : 'none';
+  if (tab === 'analyze') updateAnalyzeState();
+}
+
+function updateAnalyzeState() {
+  const apiKey = localStorage.getItem('sb_apikey') || '';
+  document.getElementById('noKey').style.display = !apiKey ? 'block' : 'none';
+  document.getElementById('noResumes').style.display = resumes.length === 0 ? 'block' : 'none';
+  document.getElementById('analyzeBtn').textContent = 'Analyze against all ' + resumes.length + ' versions →';
+  document.getElementById('analyzeBtn').disabled = !apiKey || resumes.length === 0;
+}
+
+function saveKey() {
+  const val = document.getElementById('keyInput').value.trim();
+  if (!val) return;
+  localStorage.setItem('sb_apikey', val);
+  document.getElementById('keyPanel').style.display = 'none';
+  document.getElementById('keyBtn').textContent = '✓ API key';
+  updateAnalyzeState();
+}
+
+document.getElementById('keyBtn').onclick = function() {
+  const p = document.getElementById('keyPanel');
+  p.style.display = p.style.display === 'none' ? 'block' : 'none';
+  if (p.style.display === 'block') {
+    document.getElementById('keyInput').value = localStorage.getItem('sb_apikey') || '';
+  }
+};
 
 function scoreColors(s) {
-  if (s >= 75) return { bg: '#EAF3DE', text: '#27500A', border: '#639922' };
-  if (s >= 55) return { bg: '#E6F1FB', text: '#0C447C', border: '#378ADD' };
-  if (s >= 35) return { bg: '#FAEEDA', text: '#633806', border: '#BA7517' };
-  return { bg: '#FCEBEB', text: '#791F1F', border: '#E24B4A' };
+  if (s >= 75) return { bg:'#EAF3DE', text:'#27500A', border:'#639922' };
+  if (s >= 55) return { bg:'#E6F1FB', text:'#0C447C', border:'#378ADD' };
+  if (s >= 35) return { bg:'#FAEEDA', text:'#633806', border:'#BA7517' };
+  return { bg:'#FCEBEB', text:'#791F1F', border:'#E24B4A' };
 }
 
 const APPLY_C = {
-  'Apply now': { bg: '#EAF3DE', text: '#27500A' },
-  'Apply with tweaks': { bg: '#E6F1FB', text: '#0C447C' },
-  'Low priority': { bg: '#FCEBEB', text: '#791F1F' },
+  'Apply now': { bg:'#EAF3DE', text:'#27500A' },
+  'Apply with tweaks': { bg:'#E6F1FB', text:'#0C447C' },
+  'Low priority': { bg:'#FCEBEB', text:'#791F1F' }
 };
 
-function App() {
-  const [tab, setTab] = useState('vault');
-  const [resumes, setResumes] = useState([]);
-  const [showAdd, setShowAdd] = useState(false);
-  const [addName, setAddName] = useState('');
-  const [addText, setAddText] = useState('');
-  const [jd, setJd] = useState('');
-  const [apiKey, setApiKey] = useState(localStorage.getItem('sb_apikey') || '');
-  const [showKey, setShowKey] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState(null);
-  const [error, setError] = useState(null);
-  const [copied, setCopied] = useState(null);
+const SYSTEM_PROMPT = `You are a resume coach helping Saurabh Bains match his resume versions to job descriptions.
 
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) setResumes(JSON.parse(saved));
-    } catch {}
-  }, []);
+You receive multiple labelled resume versions and a job description.
 
-  function persist(list) {
-    setResumes(list);
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); } catch {}
-  }
+Tasks:
+1. Score EACH resume version against the JD (0-100) based on keyword overlap, role framing, and relevance
+2. Identify the best match (winner)
+3. Scan ALL OTHER resumes for specific bullets that would strengthen the winner
+4. Identify keywords missing from ALL versions
 
-  function addResume() {
-    if (!addName.trim() || !addText.trim()) return;
-    persist([...resumes, { id: Date.now(), name: addName.trim(), text: addText.trim(), added: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) }]);
-    setAddName(''); setAddText(''); setShowAdd(false);
-  }
-
-  function deleteResume(id) { persist(resumes.filter(r => r.id !== id)); }
-
-  function copyText(text, id) {
-    navigator.clipboard.writeText(text).catch(() => {});
-    setCopied(id); setTimeout(() => setCopied(null), 1500);
-  }
-
-  function saveKey() { localStorage.setItem('sb_apikey', apiKey); setShowKey(false); }
-
-  async function analyse() {
-    if (!jd.trim() || resumes.length === 0 || !apiKey.trim()) return;
-    setLoading(true); setResult(null); setError(null);
-    const resumesBlock = resumes.map(r => `=== RESUME: ${r.name} ===\n${r.text}`).join('\n\n---\n\n');
-    try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-        body: JSON.stringify({
-          model: 'claude-haiku-4-5-20251001', max_tokens: 2000,
-          system: SYSTEM_PROMPT,
-          messages: [{ role: 'user', content: `My resume versions:\n\n${resumesBlock}\n\n---\n\nJob description:\n\n${jd}` }]
-        })
-      });
-      const data = await res.json();
-      if (data.error) { setError('API error: ' + data.error.message); return; }
-      const raw = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
-      const m = raw.replace(/```json|```/g, '').match(/\{[\s\S]*\}/);
-      if (!m) { setError('Parse error. Please try again.'); return; }
-      setResult(JSON.parse(m[0]));
-    } catch(e) { setError('Error: ' + e.message); }
-    finally { setLoading(false); }
-  }
-
-  return (
-    <div className="app">
-      <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:4}}>
-        <h1>JD Analyzer</h1>
-        <button style={{fontSize:12, padding:'5px 12px'}} onClick={() => setShowKey(v => !v)}>
-          {apiKey ? '✓ API key' : 'Set API key'}
-        </button>
-      </div>
-      <div className="subtitle">Store your resume versions. Analyze any JD against all of them at once.</div>
-
-      {showKey && (
-        <div className="api-panel">
-          <div className="label">Anthropic API key (saved locally)</div>
-          <div style={{display:'flex', gap:10, marginTop:8}}>
-            <input type="text" value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder="sk-ant-..." style={{flex:1}} />
-            <button className="btn-primary" onClick={saveKey}>Save</button>
-          </div>
-        </div>
-      )}
-
-      <div className="tabs">
-        <button className={`tab ${tab==='vault'?'active':''}`} onClick={() => setTab('vault')}>
-          Resume vault {resumes.length > 0 ? `(${resumes.length})` : ''}
-        </button>
-        <button className={`tab ${tab==='analyze'?'active':''}`} onClick={() => setTab('analyze')}>
-          Analyze JD
-        </button>
-      </div>
-
-      {tab === 'vault' && (
-        <div>
-          {resumes.length === 0 ? (
-            <div className="empty">No resumes saved yet.<br />Add your first version to get started.</div>
-          ) : (
-            resumes.map(r => (
-              <div key={r.id} className="resume-row">
-                <div style={{flex:1, minWidth:0}}>
-                  <div style={{fontSize:14, fontWeight:500, marginBottom:2}}>{r.name}</div>
-                  <div style={{fontSize:12, color:'var(--text3)'}}>{r.text.split(' ').length} words · added {r.added}</div>
-                </div>
-                <button onClick={() => deleteResume(r.id)} style={{border:'none', background:'none', color:'var(--text3)', fontSize:20, padding:'0 4px', cursor:'pointer'}}>×</button>
-              </div>
-            ))
-          )}
-          <div style={{marginTop:16}}>
-            <button onClick={() => { setShowAdd(v => !v); setAddName(''); setAddText(''); }}>
-              {showAdd ? 'Cancel' : '+ Add resume version'}
-            </button>
-          </div>
-          {showAdd && (
-            <div className="card" style={{marginTop:12, display:'flex', flexDirection:'column', gap:12}}>
-              <div>
-                <div className="label">Version name</div>
-                <input type="text" value={addName} onChange={e => setAddName(e.target.value)} placeholder="e.g. GOOGLE, MONZO, STRIPE..." />
-              </div>
-              <div>
-                <div className="label">Resume text</div>
-                <textarea value={addText} onChange={e => setAddText(e.target.value)} placeholder="Paste the full resume text here..." style={{minHeight:140}} />
-              </div>
-              <button className="btn-primary" disabled={!addName.trim() || !addText.trim()} onClick={addResume} style={{alignSelf:'flex-start'}}>
-                Save version
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
-      {tab === 'analyze' && (
-        <div>
-          {resumes.length === 0 ? (
-            <div className="empty">Add at least one resume version in the vault first.</div>
-          ) : (
-            <>
-              <div className="label">Job description</div>
-              <textarea value={jd} onChange={e => setJd(e.target.value)} placeholder="Paste the full job description here..." style={{minHeight:160, marginBottom:12}} />
-              {!apiKey.trim() && <p style={{fontSize:13, color:'var(--text2)', marginBottom:10}}>Set your Anthropic API key first (top right).</p>}
-              <button className="btn-primary" disabled={loading || !jd.trim() || !apiKey.trim()} onClick={analyse}>
-                {loading ? `Analysing ${resumes.length} resumes...` : `Analyse against all ${resumes.length} versions \u2197`}
-              </button>
-
-              {error && <div className="error">{error}</div>}
-
-              {result && (
-                <div style={{marginTop:28, display:'flex', flexDirection:'column', gap:20}}>
-
-                  <div>
-                    <div className="label">All versions ranked</div>
-                    <div style={{display:'flex', flexDirection:'column', gap:8}}>
-                      {(result.rankings || []).map((r, i) => {
-                        const sc = scoreColors(r.score);
-                        const isWinner = r.name === result.winner;
-                        return (
-                          <div key={i} className={isWinner ? 'card-winner' : 'card'} style={{display:'flex', alignItems:'center', gap:12}}>
-                            <div className="score-ring" style={{borderColor:sc.border, background:sc.bg}}>
-                              <span style={{fontSize:15, fontWeight:500, color:sc.text}}>{r.score}</span>
-                            </div>
-                            <div style={{flex:1}}>
-                              <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:3, flexWrap:'wrap'}}>
-                                <span style={{fontSize:14, fontWeight:500}}>{r.name}</span>
-                                {isWinner && <span className="badge" style={{background:'var(--success-bg)', color:'var(--success-text)', fontSize:11}}>Best match</span>}
-                              </div>
-                              <span style={{fontSize:13, color:'var(--text2)'}}>{r.reason}</span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {result.winnerRationale && (() => {
-                    const ac = APPLY_C[result.applyRecommendation] || APPLY_C['Apply with tweaks'];
-                    return (
-                      <div className="card">
-                        <div style={{display:'flex', gap:10, alignItems:'center', flexWrap:'wrap', marginBottom:8}}>
-                          <span style={{fontSize:14, fontWeight:500}}>Use: {result.winner}</span>
-                          <span className="badge" style={{background:ac.bg, color:ac.text}}>{result.applyRecommendation}</span>
-                        </div>
-                        <p style={{fontSize:13, color:'var(--text2)', lineHeight:1.6, margin:'0 0 6px'}}>{result.winnerRationale}</p>
-                        <p style={{fontSize:13, color:'var(--text2)', lineHeight:1.6, margin:0}}>{result.applyReason}</p>
-                      </div>
-                    );
-                  })()}
-
-                  {result.crossResumePulls?.length > 0 && (
-                    <div>
-                      <div className="label">Pull these from other versions into {result.winner}</div>
-                      <div style={{display:'flex', flexDirection:'column', gap:8}}>
-                        {result.crossResumePulls.map((p, i) => (
-                          <div key={i} className="card">
-                            <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:8, flexWrap:'wrap'}}>
-                              <span className="from-pill">from {p.fromResume}</span>
-                              <span className="to-arrow">\u2192 add to {result.winner}</span>
-                            </div>
-                            <p style={{fontSize:13, lineHeight:1.6, margin:'0 0 8px'}}>{p.fullBullet}</p>
-                            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', gap:12}}>
-                              <span style={{fontSize:12, color:'var(--text2)'}}>{p.whyItHelps}</span>
-                              <button onClick={() => copyText(p.fullBullet, `pull${i}`)} style={{fontSize:12, padding:'4px 10px', flexShrink:0}}>
-                                {copied === `pull${i}` ? 'Copied' : 'Copy'}
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {result.missingKeywords?.length > 0 && (
-                    <div>
-                      <div className="label">Keywords missing from all versions</div>
-                      <div style={{display:'flex', flexDirection:'column', gap:8}}>
-                        {result.missingKeywords.map((k, i) => (
-                          <div key={i} className="card">
-                            <span className="kw-pill">{k.keyword}</span>
-                            <p style={{fontSize:13, color:'var(--text2)', lineHeight:1.5, margin:'4px 0 0'}}>{k.suggestion}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {result.skillsLine && (
-                    <div>
-                      <div className="label">Skills line for this JD</div>
-                      <div className="card" style={{display:'flex', gap:12, alignItems:'flex-start'}}>
-                        <p style={{fontSize:13, lineHeight:1.6, margin:0, flex:1}}>{result.skillsLine}</p>
-                        <button onClick={() => copyText(result.skillsLine, 'skills')} style={{fontSize:12, padding:'4px 10px', flexShrink:0, whiteSpace:'nowrap'}}>
-                          {copied === 'skills' ? 'Copied' : 'Copy'}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      )}
-    </div>
-  );
+Respond ONLY with this JSON (no markdown, no preamble):
+{
+  "rankings": [{ "name": "...", "score": 0, "reason": "one sentence" }],
+  "winner": "...",
+  "winnerRationale": "2 sentences on why it wins",
+  "crossResumePulls": [{ "fromResume": "...", "fullBullet": "complete bullet text", "whyItHelps": "one sentence" }],
+  "missingKeywords": [{ "keyword": "exact JD keyword", "suggestion": "where to add it" }],
+  "skillsLine": "optimised skills line for this JD",
+  "applyRecommendation": "Apply now | Apply with tweaks | Low priority",
+  "applyReason": "one sentence"
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+Rules: rankings must include ALL resumes sorted best-first. crossResumePulls max 5. missingKeywords max 6.`;
+
+async function analyse() {
+  const jd = document.getElementById('jdInput').value.trim();
+  const apiKey = localStorage.getItem('sb_apikey') || '';
+  if (!jd || !apiKey || resumes.length === 0) return;
+
+  const btn = document.getElementById('analyzeBtn');
+  const errEl = document.getElementById('analyzeError');
+  const resultsEl = document.getElementById('results');
+  btn.disabled = true;
+  btn.textContent = 'Analysing ' + resumes.length + ' resumes...';
+  errEl.textContent = '';
+  resultsEl.innerHTML = '';
+
+  const resumesBlock = resumes.map(r => '=== RESUME: ' + r.name + ' ===\n' + r.text).join('\n\n---\n\n');
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001', max_tokens: 2000,
+        system: SYSTEM_PROMPT,
+        messages: [{ role: 'user', content: 'My resumes:\n\n' + resumesBlock + '\n\n---\n\nJob description:\n\n' + jd }]
+      })
+    });
+    const data = await res.json();
+    if (data.error) { errEl.textContent = 'API error: ' + data.error.message; return; }
+    const raw = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+    const m = raw.replace(/```json|```/g, '').match(/\{[\s\S]*\}/);
+    if (!m) { errEl.textContent = 'Could not parse response. Try again.'; return; }
+    renderResults(JSON.parse(m[0]));
+  } catch(e) { errEl.textContent = 'Error: ' + e.message; }
+  finally { btn.disabled = false; updateAnalyzeState(); }
+}
+
+function renderResults(r) {
+  const el = document.getElementById('results');
+  const ac = APPLY_C[r.applyRecommendation] || APPLY_C['Apply with tweaks'];
+
+  let html = '<div class="gap">';
+
+  // Rankings
+  html += '<div><div class="label">All versions ranked</div><div class="gap">';
+  (r.rankings || []).forEach(rank => {
+    const sc = scoreColors(rank.score);
+    const isW = rank.name === r.winner;
+    html += `<div class="${isW ? 'card winner' : 'card'}" style="display:flex;align-items:center;gap:12px;padding:10px 14px">
+      <div class="ring" style="border-color:${sc.border};background:${sc.bg};color:${sc.text}">${rank.score}</div>
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;flex-wrap:wrap">
+          <span style="font-size:14px;font-weight:500">${rank.name}</span>
+          ${isW ? '<span class="badge" style="background:#EAF3DE;color:#27500A;font-size:11px">Best match</span>' : ''}
+        </div>
+        <span style="font-size:13px;color:#666">${rank.reason}</span>
+      </div>
+    </div>`;
+  });
+  html += '</div></div>';
+
+  // Winner summary
+  if (r.winnerRationale) {
+    html += `<div class="card">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+        <span style="font-size:14px;font-weight:500">Use: ${r.winner}</span>
+        <span class="badge" style="background:${ac.bg};color:${ac.text}">${r.applyRecommendation}</span>
+      </div>
+      <p style="font-size:13px;color:#555;line-height:1.6;margin:0 0 6px">${r.winnerRationale}</p>
+      <p style="font-size:13px;color:#555;line-height:1.6;margin:0">${r.applyReason}</p>
+    </div>`;
+  }
+
+  // Cross-resume pulls
+  if (r.crossResumePulls?.length > 0) {
+    html += `<div><div class="label">Pull these from other versions into ${r.winner}</div><div class="gap">`;
+    r.crossResumePulls.forEach((p, i) => {
+      html += `<div class="card">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+          <span class="from-tag">from ${p.fromResume}</span>
+          <span style="font-size:12px;color:#999">→ add to ${r.winner}</span>
+        </div>
+        <p style="font-size:13px;line-height:1.6;margin:0 0 8px">${p.fullBullet}</p>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+          <span style="font-size:12px;color:#666">${p.whyItHelps}</span>
+          <button class="btn-sm" onclick="copyText('${p.fullBullet.replace(/'/g,"\\'")}','pull${i}',this)">Copy</button>
+        </div>
+      </div>`;
+    });
+    html += '</div></div>';
+  }
+
+  // Missing keywords
+  if (r.missingKeywords?.length > 0) {
+    html += '<div><div class="label">Keywords missing from all versions</div><div class="gap">';
+    r.missingKeywords.forEach(k => {
+      html += `<div class="card"><span class="kw">${k.keyword}</span><p style="font-size:13px;color:#666;line-height:1.5;margin:4px 0 0">${k.suggestion}</p></div>`;
+    });
+    html += '</div></div>';
+  }
+
+  // Skills line
+  if (r.skillsLine) {
+    html += `<div><div class="label">Skills line for this JD</div>
+      <div class="card" style="display:flex;gap:12px;align-items:flex-start">
+        <p style="font-size:13px;line-height:1.6;margin:0;flex:1" id="skillsLineText">${r.skillsLine}</p>
+        <button class="btn-sm" onclick="copyText('${r.skillsLine.replace(/'/g,"\\'")}','skills',this)">Copy</button>
+      </div>
+    </div>`;
+  }
+
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function copyText(text, id, btn) {
+  navigator.clipboard.writeText(text).catch(() => {});
+  const orig = btn.textContent;
+  btn.textContent = 'Copied';
+  setTimeout(() => { btn.textContent = orig; }, 1500);
+}
+
+// Init
+loadResumes();
+if (localStorage.getItem('sb_apikey')) {
+  document.getElementById('keyBtn').textContent = '✓ API key';
+}
 </script>
 </body>
 </html>
