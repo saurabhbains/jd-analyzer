@@ -43,15 +43,9 @@ hr{border:none;border-top:1px solid #e0e0dc;margin:1.25rem 0}
 <div class="app">
   <div class="top">
     <div><h1>JD Analyzer</h1><div class="sub">Store resume versions. Analyze any JD against all of them.</div></div>
-    <button id="keyBtn" style="font-size:12px;padding:5px 12px;margin-top:4px">Set API key</button>
+    
   </div>
-  <div id="keyPanel" style="display:none;background:#f5f5f3;border:1px solid #ddd;border-radius:10px;padding:1rem;margin-bottom:1rem">
-    <div class="label">Anthropic API key (saved in browser)</div>
-    <div style="display:flex;gap:10px;margin-top:8px">
-      <input type="text" id="keyInput" placeholder="sk-ant-..." style="flex:1" />
-      <button class="btn-p" onclick="saveKey()">Save</button>
-    </div>
-  </div>
+
   <div class="tabs">
     <button class="tab on" onclick="switchTab('vault',this)">Resume vault <span id="vaultCount"></span></button>
     <button class="tab" onclick="switchTab('analyze',this)">Analyze JD</button>
@@ -80,7 +74,6 @@ hr{border:none;border-top:1px solid #e0e0dc;margin:1.25rem 0}
   <div id="analyze" style="display:none">
     <div class="label">Job description</div>
     <textarea id="jdInput" placeholder="Paste the full job description here..." style="min-height:160px;margin-bottom:12px"></textarea>
-    <div id="noKey" style="display:none;font-size:13px;color:#888;margin-bottom:8px">Set your Anthropic API key first (top right).</div>
     <div id="noResumes" style="display:none;font-size:13px;color:#888;margin-bottom:8px">Add at least one resume in the vault first.</div>
     <button class="btn-p" id="analyzeBtn" onclick="analyse()">Analyze →</button>
     <div id="analyzeError" class="err"></div>
@@ -154,29 +147,10 @@ function switchTab(tab, el) {
 }
 
 function updateAnalyzeState() {
-  const apiKey = localStorage.getItem('sb_apikey') || '';
-  document.getElementById('noKey').style.display = !apiKey ? 'block' : 'none';
   document.getElementById('noResumes').style.display = resumes.length === 0 ? 'block' : 'none';
   document.getElementById('analyzeBtn').textContent = 'Analyze against all ' + resumes.length + ' versions →';
-  document.getElementById('analyzeBtn').disabled = !apiKey || resumes.length === 0;
+  document.getElementById('analyzeBtn').disabled = resumes.length === 0;
 }
-
-function saveKey() {
-  const val = document.getElementById('keyInput').value.trim();
-  if (!val) return;
-  localStorage.setItem('sb_apikey', val);
-  document.getElementById('keyPanel').style.display = 'none';
-  document.getElementById('keyBtn').textContent = '✓ API key';
-  updateAnalyzeState();
-}
-
-document.getElementById('keyBtn').onclick = function() {
-  const p = document.getElementById('keyPanel');
-  p.style.display = p.style.display === 'none' ? 'block' : 'none';
-  if (p.style.display === 'block') {
-    document.getElementById('keyInput').value = localStorage.getItem('sb_apikey') || '';
-  }
-};
 
 function scoreColors(s) {
   if (s >= 75) return { bg:'#EAF3DE', text:'#27500A', border:'#639922' };
@@ -217,8 +191,7 @@ Rules: rankings must include ALL resumes sorted best-first. crossResumePulls max
 
 async function analyse() {
   const jd = document.getElementById('jdInput').value.trim();
-  const apiKey = localStorage.getItem('sb_apikey') || '';
-  if (!jd || !apiKey || resumes.length === 0) return;
+  if (!jd || resumes.length === 0) return;
 
   const btn = document.getElementById('analyzeBtn');
   const errEl = document.getElementById('analyzeError');
@@ -231,9 +204,9 @@ async function analyse() {
   const resumesBlock = resumes.map(r => '=== RESUME: ' + r.name + ' ===\n' + r.text).join('\n\n---\n\n');
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch('/api/analyze', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001', max_tokens: 2000,
         system: SYSTEM_PROMPT,
@@ -383,9 +356,7 @@ if (typeof pdfjsLib !== 'undefined') {
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 }
 loadResumes();
-if (localStorage.getItem('sb_apikey')) {
-  document.getElementById('keyBtn').textContent = '✓ API key';
-}
+
 </script>
 </body>
 </html>
