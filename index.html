@@ -36,6 +36,8 @@ button:disabled{opacity:.4;cursor:not-allowed}
 .top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px}
 hr{border:none;border-top:1px solid #e0e0dc;margin:1.25rem 0}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 </head>
 <body>
 <div class="app">
@@ -61,10 +63,17 @@ hr{border:none;border-top:1px solid #e0e0dc;margin:1.25rem 0}
     </div>
     <div id="addPanel" style="display:none;margin-top:12px" class="card">
       <div class="label">Version name</div>
-      <input type="text" id="newName" placeholder="e.g. GOOGLE, MONZO, STRIPE..." style="margin-bottom:10px" />
-      <div class="label" style="margin-top:6px">Resume text</div>
-      <textarea id="newText" placeholder="Paste the full resume text here..." style="min-height:140px;margin-bottom:10px"></textarea>
-      <button class="btn-p" onclick="addResume()">Save version</button>
+      <input type="text" id="newName" placeholder="e.g. GOOGLE, MONZO, STRIPE..." style="margin-bottom:12px" />
+      <div class="label" style="margin-top:4px">Upload resume file</div>
+      <label id="uploadLabel" style="display:flex;align-items:center;justify-content:center;gap:10px;padding:20px;border:2px dashed #ccc;border-radius:8px;cursor:pointer;font-size:13px;color:#666;margin-bottom:10px;background:#fafaf8">
+        <span id="uploadIcon" style="font-size:20px">&#128206;</span>
+        <span id="uploadText">Click to upload PDF or Word doc</span>
+        <input type="file" id="fileInput" accept=".pdf,.doc,.docx" style="display:none" onchange="handleFile(this)" />
+      </label>
+      <div id="parseStatus" style="font-size:12px;color:#888;margin-bottom:8px;display:none"></div>
+      <div style="text-align:center;font-size:12px;color:#aaa;margin-bottom:10px">— or paste text manually —</div>
+      <textarea id="newText" placeholder="Paste resume text here..." style="min-height:100px;margin-bottom:10px" oninput="document.getElementById('saveBtn').disabled=!this.value.trim()"></textarea>
+      <button class="btn-p" id="saveBtn" onclick="addResume()" disabled>Save version</button>
       <button style="margin-left:8px" onclick="toggleAdd()">Cancel</button>
     </div>
   </div>
@@ -124,6 +133,10 @@ function addResume() {
   persist();
   document.getElementById('newName').value = '';
   document.getElementById('newText').value = '';
+  document.getElementById('fileInput').value = '';
+  document.getElementById('uploadText').textContent = 'Click to upload PDF or Word doc';
+  document.getElementById('parseStatus').style.display = 'none';
+  document.getElementById('saveBtn').disabled = true;
   document.getElementById('addPanel').style.display = 'none';
 }
 
@@ -322,7 +335,53 @@ function copyText(text, id, btn) {
   setTimeout(() => { btn.textContent = orig; }, 1500);
 }
 
+async function handleFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const status = document.getElementById('parseStatus');
+  const uploadText = document.getElementById('uploadText');
+  const nameInput = document.getElementById('newName');
+  status.style.display = 'block';
+  status.textContent = 'Reading file...';
+  uploadText.textContent = file.name;
+
+  // Auto-fill name from filename if empty
+  if (!nameInput.value.trim()) {
+    const n = file.name.replace(/\.(pdf|docx|doc)$/i,'').replace(/[_-]/g,' ').trim().toUpperCase();
+    nameInput.value = n;
+  }
+
+  try {
+    let text = '';
+    if (file.name.toLowerCase().endsWith('.pdf')) {
+      const buf = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        text += content.items.map(s => s.str).join(' ') + '\n';
+      }
+    } else if (file.name.toLowerCase().match(/\.docx?$/)) {
+      const buf = await file.arrayBuffer();
+      const result = await mammoth.extractRawText({ arrayBuffer: buf });
+      text = result.value;
+    }
+    text = text.trim();
+    if (!text) { status.textContent = 'Could not extract text. Try pasting manually.'; return; }
+    document.getElementById('newText').value = text;
+    status.textContent = 'Extracted ' + text.split(' ').length + ' words successfully.';
+    status.style.color = '#3B6D11';
+    document.getElementById('saveBtn').disabled = false;
+  } catch(e) {
+    status.textContent = 'Error reading file: ' + e.message + '. Try pasting manually.';
+    status.style.color = '#A32D2D';
+  }
+}
+
 // Init
+if (typeof pdfjsLib !== 'undefined') {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
 loadResumes();
 if (localStorage.getItem('sb_apikey')) {
   document.getElementById('keyBtn').textContent = '✓ API key';
