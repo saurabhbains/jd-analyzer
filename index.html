@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Resume Vault</title>
+<title>Resume Vault — AI-Powered Resume Tailoring</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
@@ -13,22 +13,86 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f3f4f6; min-height: 100vh; color: #111827; }
   @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
   .spin { display: inline-block; animation: spin 1s linear infinite; }
+  .fade { animation: fadeIn .3s ease; }
   ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
 </style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel">
-const { useState, useEffect, useRef } = React;
+const { useState, useRef } = React;
 
-/* ── Storage: keyed to password hash so vault is login-specific ── */
+/* ── Demo data ── */
+const DEMO_RESUME = `Sarah Chen
+London, UK | sarah.chen@email.com | linkedin.com/in/sarahchen | UK Work Authorised
+
+EXPERIENCE
+
+2022–2024  STRIPE — Senior Product Manager, London
+Global payments infrastructure powering millions of businesses worldwide.
+Led growth product strategy for Stripe's merchant onboarding suite.
+• Redesigned the merchant onboarding flow from 14 steps to 5, running 12 A/B experiments; reduced time-to-first-payment by 40%, increasing activation rate from 34% to 61%
+• Built a fraud risk scoring dashboard for high-volume merchants; partnered with ML and compliance teams to surface real-time acceptance rate signals, lifting acceptance rates by 3.2pp across EU markets
+• Launched a saved payment credentials feature (Link); drove repeat purchase rate from 18% to 29% in 6 months through personalisation experiments with data science team
+• Led cross-functional GTM for Stripe Tax across 8 European markets; coordinated legal, engineering and sales teams to deliver on schedule, generating £4M incremental ARR in year one
+
+2019–2022  MONZO — Product Manager, Growth, London
+UK's leading digital bank with 8M+ customers.
+• Owned the current account switching journey end-to-end; identified key drop-off points through session recordings and user interviews; improved completion rate by 22%
+• Launched Monzo's referral programme; defined mechanics, ran experiments on incentive structures, scaled to 50k referrals/month
+• Partnered with design and engineering to rebuild the spending insights experience; increased weekly active feature users by 35%
+
+2017–2019  DELIVEROO — Associate Product Manager, London
+• Rotated across consumer, courier and restaurant-facing products
+• Shipped real-time order tracking redesign; reduced support contacts by 18%
+
+EDUCATION
+2015–2017  London Business School — MBA
+2011–2015  University of Edinburgh — BSc Computer Science
+
+SKILLS
+Product: Growth experimentation, A/B testing, funnel optimisation, 0-to-1 product development
+Payments: Checkout UX, acceptance rates, fraud/risk, digital wallets, payment methods
+Analytics: SQL, Mixpanel, Amplitude, Looker
+Tools: Figma, Jira, Miro`;
+
+const DEMO_JD = `Senior Product Manager — Checkout Experience
+Checkout.com, London
+
+About the role:
+We're looking for a Senior PM to own the end-to-end checkout experience for Flow, our flagship embedded payment UI. You'll drive merchant and user acquisition by optimising conversion funnels, acceptance rates, and the Remember Me (saved credentials) feature.
+
+Key responsibilities:
+• Own checkout conversion and acceptance rate metrics across web and mobile
+• Run data-driven experiments to improve the payment UX
+• Define and execute growth initiatives to improve repeat purchase rates via Remember Me
+• Work closely with commercial, engineering, design and data teams
+• Gather merchant insights through interviews, surveys, and A/B testing
+• Monitor fraud/risk implications of product changes
+
+Requirements:
+• 5–7 years product management experience, ideally in fintech or payments
+• Strong experimentation and growth hacking background
+• Experience with checkout UX, acceptance rates, and fraud/risk tradeoffs
+• Excellent cross-functional stakeholder management
+• Data-driven with strong analytical skills`;
+
+const DEMO_CHANGES = [
+  { id: 1, approved: true, location: "Stripe bullet 2", original: "lifting acceptance rates by 3.2pp across EU markets", replacement: "improving acceptance rates by 3.2pp across EU markets, directly reducing payment failure costs", reason: "Checkout.com explicitly measures acceptance rate as a core KPI — framing this as cost reduction ties directly to their business model." },
+  { id: 2, approved: true, location: "Stripe bullet 3", original: "drove repeat purchase rate from 18% to 29%", replacement: "drove repeat purchase rate from 18% to 29% through a Remember Me-style saved credentials feature", reason: "The JD specifically calls out 'Remember Me' as a key product — surfacing this parallel immediately signals direct experience." },
+  { id: 3, approved: true, location: "Stripe bullet 1", original: "increasing activation rate from 34% to 61%", replacement: "increasing merchant activation rate from 34% to 61%, compressing time-to-revenue for new merchants", reason: "Checkout.com is focused on merchant acquisition — framing activation in revenue terms resonates with their commercial goals." },
+  { id: 4, approved: false, location: "Monzo bullet 1", original: "improved completion rate by 22%", replacement: "improved checkout completion rate by 22% through funnel analysis and targeted UX fixes", reason: "Adding 'checkout completion' and 'funnel analysis' maps this experience directly to the JD's conversion optimisation language." },
+  { id: 5, approved: true, location: "Skills — Payments", original: "Checkout UX, acceptance rates, fraud/risk, digital wallets", replacement: "Checkout UX, conversion optimisation, acceptance rates, fraud/risk tradeoffs, saved credentials (Remember Me)", reason: "Mirrors the JD's exact terminology — ATS systems and hiring managers will pattern-match directly." }
+];
+
+/* ── Storage ── */
 function hashPwd(pwd) {
   let h = 0;
   for (let i = 0; i < pwd.length; i++) h = (Math.imul(31, h) + pwd.charCodeAt(i)) | 0;
   return 'rv_' + Math.abs(h).toString(36);
 }
-
 const S = {
   getAll: key => { try { return JSON.parse(localStorage.getItem(key) || '{}'); } catch { return {}; } },
   setAll: (key, d) => localStorage.setItem(key, JSON.stringify(d)),
@@ -81,16 +145,9 @@ async function callClaude(apiKey, resumeText, jdText) {
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514', max_tokens: 2000,
       system: `You are a resume tailoring expert. Suggest 4-6 targeted text changes to improve this resume's match to the job description.
-
 Return ONLY a valid JSON array — no markdown, no explanation. Each object:
-{
-  "id": 1,
-  "location": "short label e.g. PayPay bullet 1",
-  "original": "exact verbatim phrase from resume — 5-10 words, unbroken in Word XML",
-  "replacement": "improved version of that exact phrase",
-  "reason": "one sentence why this helps for this specific JD"
-}
-Rules: original must be verbatim text found in the resume, 5-10 words max. Preserve surrounding sentence structure. Focus on high-impact keyword and framing changes only.`,
+{ "id": 1, "location": "short label e.g. PayPay bullet 1", "original": "exact verbatim phrase from resume — 5-10 words, unbroken in Word XML", "replacement": "improved version of that exact phrase", "reason": "one sentence why this helps for this specific JD" }
+Rules: original must be verbatim text found in the resume, 5-10 words max. Focus on high-impact keyword and framing changes only.`,
       messages: [{ role: 'user', content: `JOB DESCRIPTION:\n${jdText}\n\nRESUME TEXT:\n${resumeText}` }]
     })
   });
@@ -103,12 +160,12 @@ Rules: original must be verbatim text found in the resume, 5-10 words max. Prese
 /* ── Styles ── */
 const st = {
   btn: (v = 'primary') => ({
-    padding: '9px 16px', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: 'pointer', transition: 'opacity .15s',
+    padding: '9px 16px', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: 'pointer', transition: 'all .15s',
     ...(v === 'primary' ? { background: '#111827', color: '#fff' } :
         v === 'ghost'   ? { background: '#fff', color: '#374151', border: '1px solid #e5e7eb' } :
         v === 'green'   ? { background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0' } :
         v === 'red'     ? { background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca' } :
-        v === 'blue'    ? { background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' } : {})
+        v === 'demo'    ? { background: '#faf5ff', color: '#7c3aed', border: '1px solid #ddd6fe' } : {})
   }),
   inp: { width: '100%', padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: 8, fontSize: 13, outline: 'none', fontFamily: 'inherit', background: '#fff' },
   card: { background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: '1.25rem' },
@@ -116,7 +173,7 @@ const st = {
 };
 
 /* ── Login ── */
-function Login({ onAuth }) {
+function Login({ onAuth, onDemo }) {
   const getLegacyPwd = () => { try { return JSON.parse(localStorage.getItem('rv2')||'{}').pwd||null; } catch { return null; } };
   const hasPwd = !!(localStorage.getItem('rv_pwd') || getLegacyPwd());
   const [mode, setMode] = useState(hasPwd ? 'login' : 'setup');
@@ -128,33 +185,179 @@ function Login({ onAuth }) {
     if (mode === 'setup') {
       if (pwd.length < 4) return setErr('Min 4 characters');
       if (pwd !== confirm) return setErr("Passwords don't match");
-      localStorage.setItem('rv_pwd', pwd);
-      onAuth(pwd);
+      localStorage.setItem('rv_pwd', pwd); onAuth(pwd);
     } else {
-      const stored = localStorage.getItem('rv_pwd');
-      const legacy = getLegacyPwd();
-      if (pwd === stored || pwd === legacy) {
-        if (!stored) localStorage.setItem('rv_pwd', pwd);
-        onAuth(pwd);
-      } else { setErr('Wrong password'); setPwd(''); }
+      const stored = localStorage.getItem('rv_pwd'), legacy = getLegacyPwd();
+      if (pwd === stored || pwd === legacy) { if (!stored) localStorage.setItem('rv_pwd', pwd); onAuth(pwd); }
+      else { setErr('Wrong password'); setPwd(''); }
     }
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f9fafb' }}>
-      <div style={{ ...st.card, width: 340, padding: '2rem' }}>
-        <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-          <div style={{ fontSize: 36, marginBottom: 8 }}>📄</div>
-          <h1 style={{ fontSize: 20, fontWeight: 700 }}>Resume Vault</h1>
-          <p style={{ fontSize: 13, color: '#6b7280', marginTop: 4 }}>{mode === 'setup' ? 'Create a password to get started' : 'Welcome back'}</p>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)', padding: '1.5rem' }}>
+      {/* Hero */}
+      <div style={{ textAlign: 'center', marginBottom: '2.5rem', maxWidth: 480 }}>
+        <div style={{ fontSize: 44, marginBottom: 12 }}>📄</div>
+        <h1 style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.02em', marginBottom: 10 }}>Resume Vault</h1>
+        <p style={{ fontSize: 15, color: '#4b5563', lineHeight: 1.6, marginBottom: '1.5rem' }}>
+          Upload your resume versions, paste any job description, and get AI-suggested edits — applied directly to your <strong>.docx</strong> without touching the formatting.
+        </p>
+        {/* Feature pills */}
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
+          {['Format-preserving edits', 'Vault of resume versions', 'AI-powered suggestions', 'One-click .docx export'].map(f => (
+            <span key={f} style={{ fontSize: 12, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 20, padding: '4px 12px', color: '#374151', fontWeight: 500 }}>{f}</span>
+          ))}
         </div>
+        {/* Demo CTA */}
+        <button onClick={onDemo} style={{ ...st.btn('demo'), padding: '11px 24px', fontSize: 14, borderRadius: 10, width: '100%', maxWidth: 320 }}>
+          ✨ Try demo — no account needed
+        </button>
+        <p style={{ fontSize: 11, color: '#9ca3af', marginTop: 8 }}>See a live example analysis with pre-loaded resume + JD</p>
+      </div>
+
+      {/* Auth card */}
+      <div style={{ ...st.card, width: '100%', maxWidth: 340, padding: '1.75rem' }}>
+        <p style={{ fontSize: 13, fontWeight: 600, marginBottom: '1rem', color: '#374151' }}>{mode === 'setup' ? '🔐 Create your account' : '👋 Welcome back'}</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <input type="password" placeholder="Password" value={pwd} onChange={e => { setPwd(e.target.value); setErr(''); }} onKeyDown={e => e.key === 'Enter' && submit()} style={st.inp} autoFocus />
           {mode === 'setup' && <input type="password" placeholder="Confirm password" value={confirm} onChange={e => { setConfirm(e.target.value); setErr(''); }} onKeyDown={e => e.key === 'Enter' && submit()} style={st.inp} />}
           {err && <p style={{ fontSize: 12, color: '#dc2626' }}>{err}</p>}
-          <button onClick={submit} style={{ ...st.btn('primary'), padding: 12 }}>{mode === 'setup' ? 'Create Password' : 'Sign In'}</button>
-          <button onClick={switchMode} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: '#6b7280', textDecoration: 'underline', padding: '4px 0' }}>
-            {mode === 'setup' ? 'Already have a password? Sign in' : 'New here? Create a password'}
+          <button onClick={submit} style={{ ...st.btn('primary'), padding: 11 }}>{mode === 'setup' ? 'Create account' : 'Sign in'}</button>
+          <button onClick={switchMode} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: '#6b7280', textDecoration: 'underline', padding: '2px 0' }}>
+            {mode === 'setup' ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
+          </button>
+        </div>
+      </div>
+
+      <p style={{ fontSize: 11, color: '#9ca3af', marginTop: '1.5rem', textAlign: 'center' }}>
+        Your resumes are stored locally in your browser — never uploaded to any server.
+      </p>
+    </div>
+  );
+}
+
+/* ── Change Card ── */
+function ChangeCard({ c, index, onToggle }) {
+  return (
+    <div className="fade" style={{ ...st.card, borderLeft: `3px solid ${c.approved ? '#16a34a' : '#d1d5db'}`, transition: 'border-color .2s' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 10 }}>
+        <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.05em', color: '#9ca3af', paddingTop: 2 }}>{c.location}</span>
+        <button onClick={() => onToggle(index)} style={{ ...st.btn(c.approved ? 'green' : 'ghost'), padding: '4px 12px', fontSize: 12, flexShrink: 0 }}>
+          {c.approved ? '✓ Approved' : 'Rejected'}
+        </button>
+      </div>
+      <div style={{ fontSize: 13, color: '#9ca3af', textDecoration: 'line-through', marginBottom: 5 }}>{c.original}</div>
+      <div style={{ fontSize: 13, color: '#15803d', marginBottom: 8 }}>→ {c.replacement}</div>
+      <div style={{ fontSize: 12, color: '#6b7280', borderTop: '1px solid #f3f4f6', paddingTop: 8 }}>{c.reason}</div>
+    </div>
+  );
+}
+
+/* ── Demo Mode ── */
+function DemoMode({ onExit }) {
+  const [step, setStep] = useState(0); // 0=intro, 1=loading, 2=review, 3=done
+  const [changes, setChanges] = useState(DEMO_CHANGES);
+
+  const runDemo = () => { setStep(1); setTimeout(() => setStep(2), 2200); };
+
+  if (step === 1) return (
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#f9fafb' }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: 36, marginBottom: 16 }}><span className="spin">⚙️</span></div>
+        <p style={{ color: '#6b7280', fontSize: 14 }}>Analysing resume against JD...</p>
+        <p style={{ color: '#9ca3af', fontSize: 12, marginTop: 6 }}>Identifying keyword gaps and framing improvements</p>
+      </div>
+    </div>
+  );
+
+  if (step === 2 || step === 3) return (
+    <div style={{ minHeight: '100vh', background: '#f3f4f6' }}>
+      <div style={{ background: '#fff', borderBottom: '1px solid #e5e7eb' }}>
+        <div style={{ maxWidth: 780, margin: '0 auto', padding: '0 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 58 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 18 }}>📄</span>
+            <span style={{ fontWeight: 700, fontSize: 15 }}>Resume Vault</span>
+            <span style={{ fontSize: 12, background: '#faf5ff', color: '#7c3aed', border: '1px solid #ddd6fe', borderRadius: 20, padding: '2px 10px', fontWeight: 500 }}>✨ Demo mode</span>
+          </div>
+          <button onClick={onExit} style={{ ...st.btn('ghost'), fontSize: 12, padding: '6px 14px' }}>← Exit demo</button>
+        </div>
+      </div>
+      <div style={{ maxWidth: 780, margin: '0 auto', padding: '1.5rem' }}>
+        {step === 3 ? (
+          <div style={{ ...st.card, textAlign: 'center', padding: '2.5rem' }} className="fade">
+            <div style={{ fontSize: 44, marginBottom: 12 }}>✅</div>
+            <h3 style={{ fontSize: 17, fontWeight: 600, marginBottom: 8 }}>That's how it works</h3>
+            <p style={{ fontSize: 14, color: '#6b7280', marginBottom: '0.5rem' }}>In real use, the approved changes are applied directly to your <strong>.docx</strong> file — preserving fonts, spacing, and layout exactly.</p>
+            <p style={{ fontSize: 13, color: '#6b7280', marginBottom: '1.75rem' }}>The tailored resume is saved to your vault automatically, ready to download or re-use for future applications.</p>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+              <button onClick={onExit} style={{ ...st.btn('primary'), padding: '10px 24px' }}>Create an account →</button>
+              <button onClick={() => setStep(2)} style={st.btn('ghost')}>← Back to changes</button>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <div style={{ ...st.card, background: '#faf5ff', border: '1px solid #ddd6fe', marginBottom: '1.25rem', display: 'flex', gap: '1.5rem' }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ ...st.lbl, color: '#7c3aed' }}>Demo Resume</span>
+                <p style={{ fontSize: 13, fontWeight: 500 }}>Sarah Chen — Senior PM (Stripe, Monzo, Deliveroo)</p>
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ ...st.lbl, color: '#7c3aed' }}>Demo JD</span>
+                <p style={{ fontSize: 13, fontWeight: 500 }}>Senior PM — Checkout Experience, Checkout.com</p>
+              </div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+              <h3 style={{ fontSize: 15, fontWeight: 600 }}>AI-suggested changes</h3>
+              <span style={{ fontSize: 12, color: '#6b7280' }}>{changes.filter(c=>c.approved).length} of {changes.length} approved</span>
+            </div>
+            <p style={{ fontSize: 13, color: '#6b7280', marginBottom: '1rem' }}>Toggle each change to approve or reject. In real use, approved changes are applied directly to the .docx.</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: '1.25rem' }}>
+              {changes.map((c, i) => (
+                <ChangeCard key={c.id} c={c} index={i} onToggle={i => setChanges(prev => prev.map((ch, j) => j === i ? { ...ch, approved: !ch.approved } : ch))} />
+              ))}
+            </div>
+            <button onClick={() => setStep(3)} style={{ ...st.btn('primary'), width: '100%', padding: 12, fontSize: 14 }}>
+              Generate tailored .docx → (demo)
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  /* Step 0: intro */
+  return (
+    <div style={{ minHeight: '100vh', background: '#f3f4f6' }}>
+      <div style={{ background: '#fff', borderBottom: '1px solid #e5e7eb' }}>
+        <div style={{ maxWidth: 780, margin: '0 auto', padding: '0 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 58 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 18 }}>📄</span>
+            <span style={{ fontWeight: 700, fontSize: 15 }}>Resume Vault</span>
+            <span style={{ fontSize: 12, background: '#faf5ff', color: '#7c3aed', border: '1px solid #ddd6fe', borderRadius: 20, padding: '2px 10px', fontWeight: 500 }}>✨ Demo mode</span>
+          </div>
+          <button onClick={onExit} style={{ ...st.btn('ghost'), fontSize: 12, padding: '6px 14px' }}>← Exit demo</button>
+        </div>
+      </div>
+      <div style={{ maxWidth: 780, margin: '0 auto', padding: '1.5rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div style={{ ...st.card, background: 'linear-gradient(135deg, #faf5ff, #eff6ff)', border: '1px solid #ddd6fe', padding: '1.5rem' }}>
+            <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>✨ Demo: AI Resume Tailoring</h2>
+            <p style={{ fontSize: 13, color: '#4b5563', lineHeight: 1.6 }}>This demo shows a pre-loaded resume and job description. Click "Run analysis" to see how the AI identifies gaps and suggests targeted changes — then approve or reject each one.</p>
+          </div>
+          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+            <div style={{ ...st.card, flex: 1, minWidth: 260 }}>
+              <span style={st.lbl}>Resume</span>
+              <p style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>Sarah Chen — Senior PM</p>
+              <p style={{ fontSize: 12, color: '#6b7280', lineHeight: 1.5 }}>Stripe · Monzo · Deliveroo<br/>Payments & growth background<br/>London-based, LBS MBA</p>
+            </div>
+            <div style={{ ...st.card, flex: 1, minWidth: 260 }}>
+              <span style={st.lbl}>Job Description</span>
+              <p style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>Senior PM — Checkout Experience</p>
+              <p style={{ fontSize: 12, color: '#6b7280', lineHeight: 1.5 }}>Checkout.com · London<br/>Flow product / Remember Me feature<br/>Conversion & acceptance rate focus</p>
+            </div>
+          </div>
+          <button onClick={runDemo} style={{ ...st.btn('primary'), padding: '13px 20px', fontSize: 14 }}>
+            Run analysis →
           </button>
         </div>
       </div>
@@ -172,19 +375,17 @@ function ResumePicker({ vault, onSelect, onUpload }) {
     setUploading(true);
     const [text, base64] = await Promise.all([extractText(f), fileToBase64(f)]);
     const entry = { id: Date.now().toString(), name: f.name.replace('.docx',''), text, base64, addedAt: new Date().toISOString() };
-    onUpload(entry);
-    onSelect(entry);
-    setUploading(false);
+    onUpload(entry); onSelect(entry); setUploading(false);
   };
 
   return (
     <div>
       <span style={st.lbl}>1 · Choose resume</span>
-      {vault.length > 0 && (
+      {vault.length > 0 ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
           {vault.map(r => (
             <button key={r.id} onClick={() => onSelect(r)}
-              style={{ ...st.btn('ghost'), textAlign: 'left', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'flex-start' }}>
+              style={{ ...st.btn('ghost'), textAlign: 'left', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
               <span style={{ fontSize: 16 }}>📄</span>
               <div>
                 <div style={{ fontSize: 13, fontWeight: 500 }}>{r.name}</div>
@@ -193,6 +394,8 @@ function ResumePicker({ vault, onSelect, onUpload }) {
             </button>
           ))}
         </div>
+      ) : (
+        <p style={{ fontSize: 13, color: '#9ca3af', marginBottom: 8, padding: '8px 0' }}>No resumes in vault yet — upload one below to get started.</p>
       )}
       <button onClick={() => fileRef.current.click()} style={{ ...st.btn('ghost'), width: '100%', padding: '10px 14px', border: '2px dashed #e5e7eb', background: '#fafafa' }}>
         {uploading ? '⏳ Uploading...' : '+ Upload new .docx'}
@@ -204,7 +407,7 @@ function ResumePicker({ vault, onSelect, onUpload }) {
 
 /* ── Analyze Tab ── */
 function AnalyzeTab({ apiKey, vault, onAddToVault }) {
-  const [step, setStep] = useState(0); // 0=pick, 1=loading, 2=review, 3=done
+  const [step, setStep] = useState(0);
   const [selected, setSelected] = useState(null);
   const [jd, setJd] = useState('');
   const [changes, setChanges] = useState([]);
@@ -217,24 +420,21 @@ function AnalyzeTab({ apiKey, vault, onAddToVault }) {
   const handleAnalyze = async () => {
     if (!selected) return setErr('Select a resume first');
     if (!jd.trim()) return setErr('Paste a job description first');
-    if (!apiKey) return setErr('Set your API key (top right) first');
+    if (!apiKey) return setErr('Set your API key first (top right)');
     setStep(1); setErr('');
-    try {
-      const result = await callClaude(apiKey, selected.text, jd);
-      setChanges(result); setStep(2);
-    } catch (e) { setErr(e.message); setStep(0); }
+    try { const result = await callClaude(apiKey, selected.text, jd); setChanges(result); setStep(2); }
+    catch (e) { setErr(e.message); setStep(0); }
   };
 
   const handleGenerate = async () => {
-    const approved = changes.filter(c => c.approved);
-    if (!approved.length) return setErr('Approve at least one change');
+    if (!changes.filter(c => c.approved).length) return setErr('Approve at least one change');
     setStep(1);
     try {
       const { blob, failed } = await buildDocx(selected.base64, changes);
       const name = customName.trim() || (selected.name + '_tailored_' + new Date().toISOString().slice(0,10));
       const newB64 = await blobToBase64(blob);
       let updatedText = selected.text;
-      for (const c of approved) updatedText = updatedText.split(c.original).join(c.replacement);
+      changes.filter(c=>c.approved).forEach(c => { updatedText = updatedText.split(c.original).join(c.replacement); });
       onAddToVault({ id: Date.now().toString(), name, text: updatedText, base64: newB64, addedAt: new Date().toISOString() });
       setResultBlob(blob); setFailedChanges(failed); setSavedName(name); setStep(3);
     } catch (e) { setErr(e.message); setStep(2); }
@@ -250,7 +450,7 @@ function AnalyzeTab({ apiKey, vault, onAddToVault }) {
   );
 
   if (step === 3) return (
-    <div style={{ ...st.card, textAlign: 'center', padding: '2.5rem' }}>
+    <div style={{ ...st.card, textAlign: 'center', padding: '2.5rem' }} className="fade">
       <div style={{ fontSize: 44, marginBottom: 12 }}>✅</div>
       <h3 style={{ fontSize: 17, fontWeight: 600, marginBottom: 6 }}>Resume ready</h3>
       <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 4 }}>Saved to vault as <strong>{savedName}</strong></p>
@@ -272,21 +472,10 @@ function AnalyzeTab({ apiKey, vault, onAddToVault }) {
         <h3 style={{ fontSize: 15, fontWeight: 600 }}>Suggested changes · <span style={{ color: '#6b7280', fontWeight: 400 }}>{selected.name}</span></h3>
         <button onClick={reset} style={{ ...st.btn('ghost'), fontSize: 12, padding: '6px 12px' }}>← Start over</button>
       </div>
-      <p style={{ fontSize: 13, color: '#6b7280', marginBottom: '1rem' }}>Toggle to approve or reject. Approved changes are applied to the .docx preserving formatting.</p>
+      <p style={{ fontSize: 13, color: '#6b7280', marginBottom: '1rem' }}>Toggle to approve or reject. Approved changes are applied to the .docx preserving all formatting.</p>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: '1.25rem' }}>
         {changes.map((c, i) => (
-          <div key={c.id} style={{ ...st.card, borderLeft: `3px solid ${c.approved ? '#16a34a' : '#d1d5db'}`, transition: 'border-color .2s' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 10 }}>
-              <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.05em', color: '#9ca3af', paddingTop: 2 }}>{c.location}</span>
-              <button onClick={() => setChanges(prev => prev.map((ch, j) => j === i ? { ...ch, approved: !ch.approved } : ch))}
-                style={{ ...st.btn(c.approved ? 'green' : 'ghost'), padding: '4px 12px', fontSize: 12, flexShrink: 0 }}>
-                {c.approved ? '✓ Approved' : 'Rejected'}
-              </button>
-            </div>
-            <div style={{ fontSize: 13, color: '#9ca3af', textDecoration: 'line-through', marginBottom: 5 }}>{c.original}</div>
-            <div style={{ fontSize: 13, color: '#15803d', marginBottom: 8 }}>→ {c.replacement}</div>
-            <div style={{ fontSize: 12, color: '#6b7280', borderTop: '1px solid #f3f4f6', paddingTop: 8 }}>{c.reason}</div>
-          </div>
+          <ChangeCard key={c.id} c={c} index={i} onToggle={i => setChanges(prev => prev.map((ch, j) => j === i ? { ...ch, approved: !ch.approved } : ch))} />
         ))}
       </div>
       <div style={{ marginBottom: 10 }}>
@@ -294,32 +483,25 @@ function AnalyzeTab({ apiKey, vault, onAddToVault }) {
         <input value={customName} onChange={e => setCustomName(e.target.value)} placeholder={selected.name + '_tailored_' + new Date().toISOString().slice(0,10)} style={st.inp} />
       </div>
       {err && <p style={{ fontSize: 13, color: '#dc2626', marginBottom: 10 }}>{err}</p>}
-      <button onClick={handleGenerate} style={{ ...st.btn('primary'), width: '100%', padding: 12, fontSize: 14 }}>
-        Generate tailored .docx →
-      </button>
+      <button onClick={handleGenerate} style={{ ...st.btn('primary'), width: '100%', padding: 12, fontSize: 14 }}>Generate tailored .docx →</button>
     </div>
   );
 
-  /* Step 0: pick + JD */
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
       <ResumePicker vault={vault} onSelect={r => { setSelected(r); setErr(''); }} onUpload={onAddToVault} />
-
       {selected && (
         <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 16 }}>✓</span>
+          <span>✓</span>
           <span style={{ fontSize: 13, color: '#15803d', fontWeight: 500 }}>{selected.name} selected</span>
           <button onClick={() => setSelected(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', fontSize: 16 }}>✕</button>
         </div>
       )}
-
       <div>
         <span style={st.lbl}>2 · Paste job description</span>
         <textarea value={jd} onChange={e => setJd(e.target.value)} placeholder="Paste the full job description here..." style={{ ...st.inp, height: 200, resize: 'vertical', lineHeight: 1.6 }} />
       </div>
-
       {err && <p style={{ fontSize: 13, color: '#dc2626' }}>{err}</p>}
-
       <button onClick={handleAnalyze} disabled={!selected || !jd.trim()} style={{ ...st.btn('primary'), padding: '12px 20px', fontSize: 14, opacity: (!selected || !jd.trim()) ? 0.4 : 1 }}>
         Analyse &amp; suggest changes →
       </button>
@@ -344,17 +526,14 @@ function VaultTab({ vault, onRemove, onAddToVault }) {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
         <h3 style={{ fontSize: 15, fontWeight: 600 }}>{vault.length} resume{vault.length !== 1 ? 's' : ''} in vault</h3>
-        <button onClick={() => fileRef.current.click()} style={st.btn('ghost')}>
-          {uploading ? '⏳' : '+ Add resume'}
-        </button>
+        <button onClick={() => fileRef.current.click()} style={st.btn('ghost')}>{uploading ? '⏳' : '+ Add resume'}</button>
         <input ref={fileRef} type="file" accept=".docx" style={{ display: 'none' }} onChange={e => handleUpload(e.target.files[0])} />
       </div>
-
       {vault.length === 0 ? (
         <div style={{ ...st.card, textAlign: 'center', padding: '3rem', color: '#9ca3af' }}>
           <div style={{ fontSize: 32, marginBottom: 12 }}>🗂️</div>
           <p style={{ fontSize: 14 }}>No resumes yet.</p>
-          <p style={{ fontSize: 13, marginTop: 4 }}>Upload a .docx or generate a tailored resume from the Analyse tab.</p>
+          <p style={{ fontSize: 13, marginTop: 4 }}>Upload a .docx here, or generate a tailored version from the Analyse tab.</p>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -377,50 +556,37 @@ function VaultTab({ vault, onRemove, onAddToVault }) {
 }
 
 /* ── Main App ── */
-function MainApp() {
+function App() {
+  const [view, setView] = useState('login'); // login | demo | app
   const [tab, setTab] = useState('analyze');
   const [apiKey, setApiKey] = useState('');
   const [showApiInput, setShowApiInput] = useState(false);
   const [vault, setVault] = useState([]);
-  const [authed, setAuthed] = useState(false);
   const [storageKey, setStorageKey] = useState('');
 
-  /* On login, load vault and API key keyed to this user's hash */
   const handleAuth = pwd => {
     const key = hashPwd(pwd);
     setStorageKey(key);
     setVault(S.get(key, 'vault') || []);
     setApiKey(S.get(key, 'apiKey') || '');
-    setAuthed(true);
+    setView('app');
   };
 
-  const saveApiKey = k => {
-    setApiKey(k);
-    S.set(storageKey, 'apiKey', k);
-    setShowApiInput(false);
-  };
+  const saveApiKey = k => { setApiKey(k); S.set(storageKey, 'apiKey', k); setShowApiInput(false); };
 
   const addToVault = entry => {
-    setVault(prev => {
-      const v = [entry, ...prev];
-      S.set(storageKey, 'vault', v);
-      return v;
-    });
+    setVault(prev => { const v = [entry, ...prev]; if (storageKey) S.set(storageKey, 'vault', v); return v; });
   };
 
   const removeFromVault = id => {
-    setVault(prev => {
-      const v = prev.filter(r => r.id !== id);
-      S.set(storageKey, 'vault', v);
-      return v;
-    });
+    setVault(prev => { const v = prev.filter(r => r.id !== id); S.set(storageKey, 'vault', v); return v; });
   };
 
-  if (!authed) return <Login onAuth={handleAuth} />;
+  if (view === 'login') return <Login onAuth={handleAuth} onDemo={() => setView('demo')} />;
+  if (view === 'demo') return <DemoMode onExit={() => setView('login')} />;
 
   return (
     <div style={{ minHeight: '100vh', background: '#f3f4f6' }}>
-      {/* Header */}
       <div style={{ background: '#fff', borderBottom: '1px solid #e5e7eb' }}>
         <div style={{ maxWidth: 780, margin: '0 auto', padding: '0 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 58 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -445,12 +611,10 @@ function MainApp() {
                 {apiKey ? '🔑 Key set ✓' : '🔑 Set API key'}
               </button>
             )}
-            <button onClick={() => { setAuthed(false); setVault([]); setApiKey(''); setStorageKey(''); }} style={{ ...st.btn('ghost'), fontSize: 12, padding: '6px 12px' }}>Sign out</button>
+            <button onClick={() => { setView('login'); setVault([]); setApiKey(''); setStorageKey(''); }} style={{ ...st.btn('ghost'), fontSize: 12, padding: '6px 12px' }}>Sign out</button>
           </div>
         </div>
       </div>
-
-      {/* Content */}
       <div style={{ maxWidth: 780, margin: '0 auto', padding: '1.5rem' }}>
         {tab === 'analyze'
           ? <AnalyzeTab apiKey={apiKey} vault={vault} onAddToVault={addToVault} />
@@ -461,7 +625,7 @@ function MainApp() {
   );
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<MainApp />);
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 </script>
 </body>
 </html>

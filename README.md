@@ -1,37 +1,71 @@
-# JD Analyzer
+# Resume Vault
 
-A personal job description analyzer built for Saurabh Bains. Matches any job description against multiple resume versions and outputs:
+**AI-powered resume tailoring — paste a job description, get targeted edits, download a format-preserved .docx.**
 
-- **Fit score** (0–100) with rationale
-- **Recommended resume version** to use as base
-- **Bullet swaps** — which bullets to pull from other versions
-- **Missing keywords** — gaps not covered by any version
-- **Skills line** optimised for the specific JD
-- **Apply recommendation** — Apply now / Apply with tweaks / Low priority
+🔗 **Live demo: [saurabhbains.github.io/jd-analyzer](https://saurabhbains.github.io/jd-analyzer)**
 
-## Setup
+---
 
-1. Clone this repo
-2. Open `index.html` directly in your browser — no build step needed
-3. Click **"Set API key"** and enter your [Anthropic API key](https://console.anthropic.com/)
-4. Paste any job description and hit **Analyse JD**
+## What it does
 
-## Resume versions built in
+1. **Upload** your resume (.docx) or pick one from your vault
+2. **Paste** a job description
+3. **Review** AI-suggested changes — approve or reject each one individually
+4. **Download** a tailored .docx with formatting fully preserved
+5. **Auto-saves** every tailored version to your vault for future use
 
-| Version | Best for |
-|---|---|
-| `AMEX_DIRECTOR` | Director-level roles, large orgs, strategy-heavy JDs |
-| `SPM_INSURTECH` | Fintech senior PM, platform companies, insurtech |
-| `VISA` | Execution-heavy orgs (Visa, Mastercard, Expedia) |
-| `NORTHZONE` | VC firms, strategy roles, early-stage companies |
-| `ANTHROPIC` | Partnerships roles requiring social impact + tech background |
+No re-uploading. No reformatting. No copy-pasting into a new document.
 
-## Adding a new version
+---
 
-Click **"+ Add resume version"** in the app, paste the resume text, and give it a name (e.g. `GOOGLE`). Custom versions are included in every analysis during that session.
+## Features
 
-## Deploy to GitHub Pages
+- 🔐 **Password-protected** — vault is tied to your login, persists across sessions
+- 📄 **Format-preserving edits** — changes are applied directly to the Word XML, fonts/spacing/layout untouched
+- 🗂️ **Resume vault** — store multiple versions (e.g. one per target role or company), select from vault when analysing
+- ✨ **Demo mode** — try a live example without an account or API key
+- 🔑 **Bring your own API key** — uses the Anthropic Claude API directly from your browser
 
-In your repo settings → Pages → Source: Deploy from branch → main → / (root)
+---
 
-Your analyzer will be live at `https://saurabhbains.github.io/jd-analyzer`
+## Tech stack
+
+- **React** (via CDN, no build step)
+- **JSZip** — browser-side .docx manipulation (ZIP/XML)
+- **Mammoth.js** — .docx text extraction
+- **Anthropic Claude API** — `claude-sonnet-4-20250514` for change suggestions
+- **localStorage** — password-keyed persistence, no backend or database
+
+Single `index.html` — no dependencies to install, no server required.
+
+---
+
+## Running locally
+
+```bash
+git clone https://github.com/saurabhbains/jd-analyzer.git
+cd jd-analyzer
+open index.html   # or serve via any static file server
+```
+
+No `npm install`. No build step. Just open the file.
+
+---
+
+## How the .docx editing works
+
+Rather than regenerating the document (which destroys formatting), the app:
+
+1. Unzips the `.docx` (which is a ZIP archive of XML files)
+2. Performs surgical string replacements directly in `word/document.xml`
+3. Rezips and serves the result as a download
+
+This preserves every font, table, spacing rule, and hyperlink exactly as the user designed it.
+
+---
+
+## Built by
+
+[Saurabh Bains](https://linkedin.com/in/saurabhbains) — MBA candidate at London Business School (exchange at UC Berkeley Haas). Previously Senior PM at PayPay (SoftBank), Paytm, and Central Square Foundation.
+
+Other projects: [Pathwise](https://github.com/shanv7/pathwise) · [BerkeleyRides](https://github.com/gaurangsumra/berkeley-rideshare-hub)
